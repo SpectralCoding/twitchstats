@@ -1,3 +1,3 @@
-# IncreBuild - Automatic Version Incrementation of Visual Studio Projects
+# TwitchStats - Twitch.tv Chat Statistics
 
-The project spawned out of a personal need to be able to uniquely and consistently version builds and releases of an application.
+Kappa
