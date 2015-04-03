@@ -1,4 +1,4 @@
-﻿/// <copyright file="Program.cs" company="SpectralCoding.com">
+﻿/// <copyright file="ChannelParser.cs" company="SpectralCoding.com">
 ///     Copyright (c) 2015 SpectralCoding
 /// </copyright>
 /// <license>
@@ -19,21 +19,36 @@
 /// </license>
 /// <author>Caesar Kabalan</author>
 
-namespace Statistician {
-	using System;
-	using System.Configuration;
-	using System.Reflection;
-	using ParseEngine;
-	using Utility;
+namespace ParseEngine {
+	public enum LineType {
+		/// <summary>
+		/// Format of [##:##:##] &lt;nick&gt; Message Text
+		/// </summary>
+		Message,
 
-	public class Program {
-		private static void Main(String[] args) {
-			AppLog.WriteLine(
-				1,
-				"STATUS",
-				"Entered Statistician.Program.Main(). TwitchStats v" + Assembly.GetExecutingAssembly().GetName().Version + " started.");
-			TwitchNetwork.Parse(Statistician.Properties.Settings.Default.IRCLogDir);
-			Console.ReadLine();
-		}
+		/// <summary>
+		/// Format of [##:##:##] * nick Action Text
+		/// </summary>
+		Action,
+
+		/// <summary>
+		/// Format of [##:##:##] *** Joins: nick (ident@host)
+		/// </summary>
+		Join,
+
+		/// <summary>
+		/// Format of [##:##:##] *** Parts: nick (ident@host)
+		/// </summary>
+		Part,
+
+		/// <summary>
+		/// Format of [##:##:##] *** jtv sets mode: +o nick
+		/// </summary>
+		ModePlusOperator,
+
+		/// <summary>
+		/// Format of [##:##:##] *** jtv sets mode: -o nick
+		/// </summary>
+		ModeMinusOperator
 	}
 }

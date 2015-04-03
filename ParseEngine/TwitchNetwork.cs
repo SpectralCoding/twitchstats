@@ -1,4 +1,4 @@
-﻿/// <copyright file="Program.cs" company="SpectralCoding.com">
+﻿/// <copyright file="TwitchNetwork.cs" company="SpectralCoding.com">
 ///     Copyright (c) 2015 SpectralCoding
 /// </copyright>
 /// <license>
@@ -19,21 +19,24 @@
 /// </license>
 /// <author>Caesar Kabalan</author>
 
-namespace Statistician {
+namespace ParseEngine {
 	using System;
 	using System.Configuration;
-	using System.Reflection;
-	using ParseEngine;
-	using Utility;
+	using System.IO;
 
-	public class Program {
-		private static void Main(String[] args) {
-			AppLog.WriteLine(
-				1,
-				"STATUS",
-				"Entered Statistician.Program.Main(). TwitchStats v" + Assembly.GetExecutingAssembly().GetName().Version + " started.");
-			TwitchNetwork.Parse(Statistician.Properties.Settings.Default.IRCLogDir);
-			Console.ReadLine();
+	public static class TwitchNetwork {
+		public static void Parse(string logDir) {
+			ParseChannels(logDir);
+		}
+
+		private static void ParseChannels(string logDir) {
+			String[] channelList = Directory.GetDirectories(logDir);
+			foreach (String curChannel in channelList) {
+				String channelName = Path.GetFileName(curChannel);
+				if (channelName.Substring(0, 1) == "#") {
+					ChannelParser.Parse(Path.Combine(logDir, channelName));
+				}
+			}
 		}
 	}
 }
