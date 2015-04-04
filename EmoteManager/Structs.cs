@@ -26,7 +26,7 @@ namespace EmoteManager {
 		public Int32 ImageID;
 		public String Code;
 		public String Channel;
-		public String Set;
+		public String SetID;
 		public String Description;
 	}
 }

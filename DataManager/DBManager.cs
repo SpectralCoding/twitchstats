@@ -21,41 +21,57 @@
 
 namespace DataManager {
 	using System;
-	using System.Data.SQLite;
+	using System.Collections;
+	using System.Collections.Generic;
 	using System.IO;
+	using MySql.Data.MySqlClient;
 	using Utility;
 
 	public static class DBManager {
-		private static SQLiteConnection s_dbConnection;
+		private static MySqlConnection s_dbConnection;
 
-		public static SQLiteConnection DbConnection {
+		public static MySqlConnection DbConnection {
 			get { return s_dbConnection; }
 			set { s_dbConnection = value; }
 		}
 
-		public static void OpenDatabase(String filePath) {
+		public static void OpenDatabase(String connectionString) {
 			AppLog.WriteLine(1, "STATUS", "Entered DataManager.DBManager.OpenDatabase().");
-			if (!File.Exists(filePath)) {
-				SQLiteConnection.CreateFile(filePath);
-				DbConnection = new SQLiteConnection("Data Source=" + filePath + ";Version=3;Journal Mode=Off");
-				DbConnection.Open();
-				CreateChannelTables("_global");
-			} else {
-				DbConnection = new SQLiteConnection("Data Source=" + filePath + ";Version=3;Journal Mode=Off");
-				DbConnection.Open();
-			}
+			DbConnection = new MySqlConnection(connectionString);
+			DbConnection.Open();
+			CheckTables();
 		}
 
-		private static void CreateChannelTables(String channelName) {
-			String sql =
-				@"CREATE TABLE [main].[_global$emote_info] (
-					[image_id] INTEGER,
-					[code] TEXT NOT NULL,
-					[channel] TEXT,
-					[set] TEXT,
-					[description] TEXT);";
-			SQLiteCommand command = new SQLiteCommand(sql, DbConnection);
-			command.ExecuteNonQuery();
+		private static void CheckTables() {
+			AppLog.WriteLine(1, "STATUS", "Entered DataManager.DBManager.CheckTables().");
+			MySqlCommand cmd = new MySqlCommand(
+				@"SHOW TABLES",
+				s_dbConnection);
+			List<String> tableList = new List<String>();
+			Int32 loopReader = 0;
+			using (MySqlDataReader reader = cmd.ExecuteReader()) {
+				while (reader.Read()) {
+					tableList.Add(reader.GetString(loopReader));
+					AppLog.WriteLine(5, "Debug", "   Found Table: " + tableList[tableList.Count - 1]);
+					loopReader++;
+				}
+			}
+			if (!tableList.Contains("_global$emote_list")) {
+				AppLog.WriteLine(2, "WARNING", "   Missing Table \"_global$emote_list\". Creating...");
+				String sql =
+					@"CREATE TABLE IF NOT EXISTS `_global$emote_list` (
+						`id` int(11) NOT NULL,
+						`image_id` int(11) DEFAULT NULL,
+						`code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+						`channel` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+						`set_id` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+						`description` text COLLATE utf8mb4_bin
+					) ENGINE=InnoDB AUTO_INCREMENT=26620 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+					ALTER TABLE `_global$emote_list` ADD PRIMARY KEY (`id`);
+					ALTER TABLE `_global$emote_list` MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;";
+				MySqlCommand command = new MySqlCommand(sql, DbConnection);
+				command.ExecuteNonQuery();
+			}
 		}
 	}
 }

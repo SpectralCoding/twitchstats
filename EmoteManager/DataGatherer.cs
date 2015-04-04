@@ -23,9 +23,9 @@ namespace EmoteManager {
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
-	using System.Data.SQLite;
 	using System.Net;
 	using DataManager;
+	using MySql.Data.MySqlClient;
 	using Newtonsoft.Json;
 	using Newtonsoft.Json.Linq;
 	using Utility;
@@ -55,7 +55,7 @@ namespace EmoteManager {
 			temp.ImageID = Convert.ToInt32(jsonEmoteProperty.Name);
 			temp.Code = jsonEmoteProperty.Value["code"].ToString();
 			temp.Channel = (jsonEmoteProperty.Value["channel"] ?? String.Empty).ToString();
-			temp.Set = (jsonEmoteProperty.Value["set"] ?? String.Empty).ToString();
+			temp.SetID = (jsonEmoteProperty.Value["channel"] ?? String.Empty).ToString();
 			temp.Description = (jsonEmoteProperty.Value["description"] ?? String.Empty).ToString();
 			return temp;
 		}
@@ -71,7 +71,7 @@ namespace EmoteManager {
 					var jsonTopProperty = jsonTopToken as JProperty;
 					if (jsonTopProperty.Name == "images") {
 						// Begin a transaction so our query is faster.
-						SQLiteTransaction transaction = DBManager.DbConnection.BeginTransaction();
+						MySqlTransaction transaction = DBManager.DbConnection.BeginTransaction();
 						foreach (JToken jsonEmoteToken in jsonTopProperty.Value.Children()) {
 							var jsonEmoteProperty = jsonEmoteToken as JProperty;
 							AppLog.WriteLine(5, "DEBUG", "   Checking For Emote Code \"" + jsonEmoteProperty.Value["code"] + "\".");
@@ -81,19 +81,25 @@ namespace EmoteManager {
 								if (NeedToUpdateEmoteInDatabase(existingEmote, jsonEmoteProperty)) {
 									// Update it in the database
 									AppLog.WriteLine(5, "DEBUG", "   Updating Emote Code \"" + jsonEmoteProperty.Value["code"] + "\".");
-									SQLiteCommand updateCmd = new SQLiteCommand(
-										@"UPDATE [_global$emote_info] SET
-											[image_id] = $image_id,
-											[channel] = $channel,
-											[set] = $set,
-											[description] = $description
-										WHERE [code] = $code;",
+									MySqlCommand updateCmd = new MySqlCommand(
+										@"UPDATE `_global$emote_list` SET
+											`image_id` = @image_id,
+											`channel` = @channel,
+											`set_id` = @set_id,
+											`description` = @description
+										WHERE `code` = @code;",
 										DBManager.DbConnection);
-									updateCmd.Parameters.AddWithValue("$image_id", jsonEmoteProperty.Name);
-									updateCmd.Parameters.AddWithValue("$code", jsonEmoteProperty.Value["code"]);
-									updateCmd.Parameters.AddWithValue("$channel", jsonEmoteProperty.Value["channel"]);
-									updateCmd.Parameters.AddWithValue("$set", jsonEmoteProperty.Value["set"]);
-									updateCmd.Parameters.AddWithValue("$description", jsonEmoteProperty.Value["description"]);
+									updateCmd.Parameters.AddWithValue("@image_id", jsonEmoteProperty.Name);
+									updateCmd.Parameters.AddWithValue("@code", jsonEmoteProperty.Value["code"].ToString());
+									updateCmd.Parameters.AddWithValue(
+										"@channel",
+										(jsonEmoteProperty.Value["channel"] ?? String.Empty).ToString());
+									updateCmd.Parameters.AddWithValue(
+										"@set_id",
+										(jsonEmoteProperty.Value["set"] ?? String.Empty).ToString());
+									updateCmd.Parameters.AddWithValue(
+										"@description",
+										(jsonEmoteProperty.Value["description"] ?? String.Empty).ToString());
 									updateCmd.ExecuteNonQuery();
 									// Update the in-memory Emote Dictionary so we stay in sync.
 									databaseEmotes[jsonEmoteProperty.Value["code"].ToString()] =
@@ -102,26 +108,25 @@ namespace EmoteManager {
 							} else {
 								// Emote doesn't exist, so add it.
 								AppLog.WriteLine(5, "DEBUG", "   Adding Emote Code \"" + jsonEmoteProperty.Value["code"] + "\".");
-								SQLiteCommand insertCmd = new SQLiteCommand(
+								MySqlCommand insertCmd = new MySqlCommand(
 									@"INSERT INTO
-									[_global$emote_info] (
-										[image_id],
-										[code],
-										[channel],
-										[set],
-										[description]
+									`_global$emote_list` (
+										`image_id`, `code`, `channel`, `set_id`, `description`
 									) VALUES (
-										$image_id,
-										$code,
-										$channel,
-										$set,
-										$description);",
+										@image_id, @code, @channel, @set_id, @description
+									);",
 									DBManager.DbConnection);
-								insertCmd.Parameters.AddWithValue("$image_id", jsonEmoteProperty.Name);
-								insertCmd.Parameters.AddWithValue("$code", jsonEmoteProperty.Value["code"]);
-								insertCmd.Parameters.AddWithValue("$channel", jsonEmoteProperty.Value["channel"]);
-								insertCmd.Parameters.AddWithValue("$set", jsonEmoteProperty.Value["set"]);
-								insertCmd.Parameters.AddWithValue("$description", jsonEmoteProperty.Value["description"]);
+								insertCmd.Parameters.AddWithValue("@image_id", jsonEmoteProperty.Name);
+								insertCmd.Parameters.AddWithValue("@code", jsonEmoteProperty.Value["code"].ToString());
+								insertCmd.Parameters.AddWithValue(
+									"@channel",
+									(jsonEmoteProperty.Value["channel"] ?? String.Empty).ToString());
+								insertCmd.Parameters.AddWithValue(
+									"@set_id",
+									(jsonEmoteProperty.Value["set"] ?? String.Empty).ToString());
+								insertCmd.Parameters.AddWithValue(
+									"@description",
+									(jsonEmoteProperty.Value["description"] ?? String.Empty).ToString());
 								insertCmd.ExecuteNonQuery();
 								// Update the in-memory Emote Dictionary so we stay in sync.
 								databaseEmotes.Add(jsonEmoteProperty.Value["code"].ToString(), CreateEmoteFromJsonEmote(jsonEmoteProperty));
@@ -135,18 +140,23 @@ namespace EmoteManager {
 
 		private static Dictionary<String, Emote> DumpEmotes() {
 			Dictionary<String, Emote> returnDict = new Dictionary<String, Emote>();
-			SQLiteCommand selectCmd = new SQLiteCommand(
-				@"SELECT * FROM [_global$emote_info];",
-				DBManager.DbConnection);
-			SQLiteDataReader reader = selectCmd.ExecuteReader();
-			while (reader.Read()) {
-				Emote temp = new Emote();
-				temp.ImageID = Convert.ToInt32(reader["image_id"]);
-				temp.Code = reader["code"].ToString();
-				temp.Channel = reader["channel"].ToString();
-				temp.Set = reader["set"].ToString();
-				temp.Description = reader["description"].ToString();
-				returnDict.Add(temp.Code, temp);
+			MySqlCommand selectCmd = new MySqlCommand(@"SELECT * FROM `_global$emote_list`;", DBManager.DbConnection);
+			using (MySqlDataReader reader = selectCmd.ExecuteReader()) {
+				while (reader.Read()) {
+					Emote temp = new Emote();
+					temp.ImageID = reader.GetInt32("image_id");
+					temp.Code = reader.GetString("code");
+					if (!reader.IsDBNull(3)) {
+						temp.Channel = reader.GetString("channel");
+					}
+					if (!reader.IsDBNull(4)) {
+						temp.SetID = reader.GetString("set_id");
+					}
+					if (!reader.IsDBNull(5)) {
+						temp.Description = reader.GetString("description");
+					}
+					returnDict.Add(temp.Code, temp);
+				}
 			}
 			return returnDict;
 		}
