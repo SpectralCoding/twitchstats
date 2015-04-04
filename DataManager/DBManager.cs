@@ -48,12 +48,10 @@ namespace DataManager {
 				@"SHOW TABLES",
 				s_dbConnection);
 			List<String> tableList = new List<String>();
-			Int32 loopReader = 0;
 			using (MySqlDataReader reader = cmd.ExecuteReader()) {
 				while (reader.Read()) {
-					tableList.Add(reader.GetString(loopReader));
+					tableList.Add(reader.GetString(0));
 					AppLog.WriteLine(5, "Debug", "   Found Table: " + tableList[tableList.Count - 1]);
-					loopReader++;
 				}
 			}
 			if (!tableList.Contains("_global$emote_list")) {
@@ -69,6 +67,34 @@ namespace DataManager {
 					) ENGINE=InnoDB AUTO_INCREMENT=26620 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 					ALTER TABLE `_global$emote_list` ADD PRIMARY KEY (`id`);
 					ALTER TABLE `_global$emote_list` MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;";
+				MySqlCommand command = new MySqlCommand(sql, DbConnection);
+				command.ExecuteNonQuery();
+			}
+			if (!tableList.Contains("_global$log_list")) {
+				AppLog.WriteLine(2, "WARNING", "   Missing Table \"_global$log_list\". Creating...");
+				String sql =
+					@"CREATE TABLE `_global$log_list` (
+						`id` int(11) NOT NULL,
+						`channel_id` int(11) NOT NULL,
+						`filename` varchar(50) COLLATE utf8mb4_bin NOT NULL,
+						`is_closed` tinyint(1) NOT NULL,
+						`last_size` int(11) NOT NULL,
+						`last_line` int(11) NOT NULL
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+					ALTER TABLE `_global$log_list` ADD PRIMARY KEY (`id`);
+					ALTER TABLE `_global$log_list` MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;";
+				MySqlCommand command = new MySqlCommand(sql, DbConnection);
+				command.ExecuteNonQuery();
+			}
+			if (!tableList.Contains("_global$channel_list")) {
+				AppLog.WriteLine(2, "WARNING", "   Missing Table \"_global$channel_list\". Creating...");
+				String sql =
+					@"CREATE TABLE IF NOT EXISTS `_global$channel_list` (
+						`id` int(11) NOT NULL,
+						`channel` varchar(50) COLLATE utf8mb4_bin NOT NULL
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+					ALTER TABLE `_global$channel_list` ADD PRIMARY KEY (`id`);
+					ALTER TABLE `_global$channel_list` MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;";
 				MySqlCommand command = new MySqlCommand(sql, DbConnection);
 				command.ExecuteNonQuery();
 			}

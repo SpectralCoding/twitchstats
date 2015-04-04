@@ -48,6 +48,14 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\DataManager\DataManager.csproj">
+      <Project>{e63a8dab-16fe-4135-bf73-8c9f95b85355}</Project>
+      <Name>DataManager</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EmoteManager\EmoteManager.csproj">
+      <Project>{13ec07bb-093e-4fdc-a178-def9e3456bbe}</Project>
+      <Name>EmoteManager</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Utility\Utility.csproj">
       <Project>{b8707bef-f665-4894-9499-f1b4a5b12ea5}</Project>
       <Name>Utility</Name>

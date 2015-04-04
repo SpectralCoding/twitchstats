@@ -1,4 +1,4 @@
-﻿/// <copyright file="TwitchNetwork.cs" company="SpectralCoding.com">
+﻿/// <copyright file="Structs.cs" company="SpectralCoding.com">
 ///     Copyright (c) 2015 SpectralCoding
 /// </copyright>
 /// <license>
@@ -19,29 +19,16 @@
 /// </license>
 /// <author>Caesar Kabalan</author>
 
-namespace ParseEngine {
+namespace DataManager {
 	using System;
-	using System.Configuration;
 	using System.IO;
-	using Utility;
-
-	public static class TwitchNetwork {
-		public static void Parse(string logDir) {
-			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.TwitchNetwork.Parse().");
-			AppLog.WriteLine(5, "DEBUG", "   P1: " + logDir);
-			ParseChannels(logDir);
-		}
-
-		private static void ParseChannels(string logDir) {
-			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.TwitchNetwork.ParseChannels().");
-			AppLog.WriteLine(5, "DEBUG", "   P1: " + logDir);
-			String[] channelList = Directory.GetDirectories(logDir);
-			foreach (String curChannel in channelList) {
-				String channelName = Path.GetFileName(curChannel);
-				if (channelName.Substring(0, 1) == "#") {
-					ChannelParser.Parse(logDir, channelName);
-				}
-			}
-		}
+	public struct LogRecord {
+		public Int32 ID;
+		public Int32 ChannelID;
+		public String Filename;
+		public Boolean IsClosed;
+		public Int64 LastSize;
+		public Int32 LastLine;
+		public FileInfo CurrentInfo;
 	}
 }

@@ -30,6 +30,7 @@ namespace Statistician {
 
 	public class Program {
 		private static void Main(String[] args) {
+			Console.SetWindowSize(200, 50);
 			AppLog.WriteLine(
 				1,
 				"STATUS",

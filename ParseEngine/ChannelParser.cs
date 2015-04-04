@@ -21,35 +21,81 @@
 
 namespace ParseEngine {
 	using System;
+	using System.Collections;
+	using System.Collections.Generic;
 	using System.IO;
 	using Utility;
+	using DataManager;
 
 	public static class ChannelParser {
-		public static void Parse(String logDir) {
+		public static void Parse(String logDir, String channelName) {
 			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.ChannelParser.Parse().");
-			AppLog.WriteLine(5, "DEBUG", "   P1: " + logDir);
-			String[] logList = Directory.GetFiles(logDir);
-			foreach (String curLog in logList) {
-				ParseLog(curLog);
+			AppLog.WriteLine(5, "DEBUG", "   LogDir: " + logDir);
+			AppLog.WriteLine(5, "DEBUG", "   ChannelName: " + channelName);
+			if (!ChannelDataMan.ChannelExists(channelName)) {
+				ChannelDataMan.AddChannel(channelName);
+			}
+			Int32 channelID = ChannelDataMan.GetChannelID(channelName);
+			Dictionary<String, LogRecord> parseList = GetLogsToParse(logDir, channelName, channelID);
+			foreach (KeyValuePair<String, LogRecord> curKVP in parseList) {
+				ParseLog(logDir, channelName, curKVP.Value, channelID);
 			}
 		}
 
-		private static void ParseLog(String logFile) {
+		public static Dictionary<String, LogRecord> GetLogsToParse(String logDir, String channelName, Int32 channelID) {
+			Dictionary<String, LogRecord> channelLogs = LogDataMan.GetLogs(channelID);
+			Dictionary<String, LogRecord> returnLogs = new Dictionary<String, LogRecord>();
+			String[] logList = Directory.GetFiles(Path.Combine(logDir, channelName));
+			foreach (String curLog in logList) {
+				if (!channelLogs.ContainsKey(Path.GetFileName(curLog))) {
+					LogRecord newLogRecord = new LogRecord();
+					newLogRecord.ChannelID = channelID;
+					newLogRecord.CurrentInfo = new FileInfo(curLog);
+					newLogRecord.Filename = Path.GetFileName(curLog);
+					newLogRecord.IsClosed = false;
+					newLogRecord.LastSize = 0;
+					newLogRecord.LastLine = 0;
+					returnLogs.Add(newLogRecord.Filename, newLogRecord);
+                }
+			}
+			foreach (KeyValuePair<String, LogRecord> curKVP in channelLogs) {
+				LogRecord tempLogRecord = curKVP.Value;
+				tempLogRecord.CurrentInfo = new FileInfo(Path.Combine(logDir, channelName, curKVP.Key));
+				if (tempLogRecord.CurrentInfo.Length > tempLogRecord.LastSize) {
+					returnLogs.Add(curKVP.Key, tempLogRecord);
+				}
+			}
+			return returnLogs;
+		}
+
+		private static void ParseLog(String logDir, String channelName, LogRecord logRecord, Int32 channelID) {
 			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.ChannelParser.ParseLog().");
-			AppLog.WriteLine(5, "DEBUG", "   P1: " + logFile);
+			AppLog.WriteLine(5, "DEBUG", "   Parsing: " + logRecord.Filename);
+			AppLog.WriteLine(5, "DEBUG", "      Starting at Line " + logRecord.LastLine + ".");
+			Int32 lineNumber = 0;
 			String curLine;
 			DateTime logDate;
 			DateTime.TryParseExact(
-				Path.GetFileNameWithoutExtension(logFile),
+				Path.GetFileNameWithoutExtension(logRecord.Filename),
 				"yyyy-MM-dd",
 				null,
 				System.Globalization.DateTimeStyles.None,
 				out logDate);
-			StreamReader logSR = new StreamReader(logFile);
+			StreamReader logSR = new StreamReader(logRecord.CurrentInfo.FullName);
 			while ((curLine = logSR.ReadLine()) != null) {
-				ParseLine(curLine, logDate);
+				if (logRecord.LastLine < lineNumber) {
+					ParseLine(curLine, logDate);
+				}
+				lineNumber++;
 			}
-		}
+			// Make sure we have the latest size.
+			logRecord.CurrentInfo = new FileInfo(logRecord.CurrentInfo.FullName);
+            if (logRecord.LastSize == 0) {
+				LogDataMan.AddLog(logRecord.Filename, channelID, false, logRecord.CurrentInfo.Length, lineNumber);
+			} else if (logRecord.LastLine < lineNumber) {
+				LogDataMan.UpdateLog(logRecord, lineNumber);
+			}
+        }
 
 		private static void ParseLine(String line, DateTime date) {
 			TimeSpan tempTS;
@@ -91,12 +137,12 @@ namespace ParseEngine {
 									username = line.Substring(33);
 									break;
 								default:
-									AppLog.WriteLine(5, "DEBUG", "Unknown Line: " + line);
+									AppLog.WriteLine(3, "WARNING", "Unknown Line: " + line);
 									break;
 							}
 							break;
 						default:
-							AppLog.WriteLine(5, "DEBUG", "Unknown Line: " + line);
+							AppLog.WriteLine(3, "WARNING", "Unknown Line: " + line);
 							break;
 					}
 				}
