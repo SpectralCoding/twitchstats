@@ -12,7 +12,7 @@
     <AssemblyName>Statistician</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <NuGetPackageImportStamp>28900009</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>e55cb98b</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -61,6 +61,14 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\DataManager\DataManager.csproj">
+      <Project>{e63a8dab-16fe-4135-bf73-8c9f95b85355}</Project>
+      <Name>DataManager</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EmoteManager\EmoteManager.csproj">
+      <Project>{13ec07bb-093e-4fdc-a178-def9e3456bbe}</Project>
+      <Name>EmoteManager</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ParseEngine\ParseEngine.csproj">
       <Project>{375b975b-1ae4-4f33-9cc2-0b95c0ecd654}</Project>
       <Name>ParseEngine</Name>

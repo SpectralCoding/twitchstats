@@ -34,9 +34,15 @@ namespace Utility {
 			set { s_enabled = value; }
 		}
 
+		/// <summary>
+		/// Sets the verbosity of logging.
+		/// </summary>
+		/// <param name="newLogLevel">
+		/// 1 = Minimum. Just Errors and major status changes. 2 = Non-Critical Errors/Warnings.
+		/// 3 = Unused. 4 = Configuration Output. 5 = Everything.</param>
 		public static void SetLogLevel(Int32 newLogLevel) {
 			// 1 = Minimum. Just Errors and major status changes
-			// 2 = Unused
+			// 2 = Non-Critical Errors/Warnings
 			// 3 = Unused
 			// 4 = Configuration Output
 			// 5 = Most Verbose. Everything.

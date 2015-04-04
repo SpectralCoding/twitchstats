@@ -23,13 +23,18 @@ namespace ParseEngine {
 	using System;
 	using System.Configuration;
 	using System.IO;
+	using Utility;
 
 	public static class TwitchNetwork {
 		public static void Parse(string logDir) {
+			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.TwitchNetwork.Parse().");
+			AppLog.WriteLine(5, "DEBUG", "   P1: " + logDir);
 			ParseChannels(logDir);
 		}
 
 		private static void ParseChannels(string logDir) {
+			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.TwitchNetwork.ParseChannels().");
+			AppLog.WriteLine(5, "DEBUG", "   P1: " + logDir);
 			String[] channelList = Directory.GetDirectories(logDir);
 			foreach (String curChannel in channelList) {
 				String channelName = Path.GetFileName(curChannel);

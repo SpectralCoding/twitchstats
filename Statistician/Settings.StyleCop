@@ -137,7 +137,7 @@
     </Analyzer>
     <Analyzer AnalyzerId="StyleCopPlus.StyleCopPlusRules">
       <AnalyzerSettings>
-        <StringProperty Name="AdvancedNaming_Words">3D ASCII BC BCVM CVM FxCop FS ID IDs IM KVP OK SB SR StyleCop TS URL VMs XmlR XmlW</StringProperty>
+        <StringProperty Name="AdvancedNaming_Words">3D ASCII BC BCVM CVM DB FxCop FS JSON ID IDs IM KVP OK SB SR StyleCop TS URL VMs XmlR XmlW</StringProperty>
         <StringProperty Name="AdvancedNaming_BlockAt">All</StringProperty>
       </AnalyzerSettings>
     </Analyzer>

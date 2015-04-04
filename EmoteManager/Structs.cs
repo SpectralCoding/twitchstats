@@ -1,4 +1,4 @@
-﻿/// <copyright file="Program.cs" company="SpectralCoding.com">
+﻿/// <copyright file="Structs.cs" company="SpectralCoding.com">
 ///     Copyright (c) 2015 SpectralCoding
 /// </copyright>
 /// <license>
@@ -19,27 +19,14 @@
 /// </license>
 /// <author>Caesar Kabalan</author>
 
-namespace Statistician {
+namespace EmoteManager {
 	using System;
-	using System.Configuration;
-	using System.Reflection;
-	using DataManager;
-	using EmoteManager;
-	using ParseEngine;
-	using Utility;
 
-	public class Program {
-		private static void Main(String[] args) {
-			AppLog.WriteLine(
-				1,
-				"STATUS",
-				"Entered Statistician.Program.Main(). TwitchStats v" + Assembly.GetExecutingAssembly().GetName().Version + " started.");
-			AppLog.SetLogLevel(Statistician.Properties.Settings.Default.LogLevel);
-			DBManager.OpenDatabase(Statistician.Properties.Settings.Default.Database);
-			DataGatherer.Download();
-			TwitchNetwork.Parse(Statistician.Properties.Settings.Default.IRCLogDir);
-			AppLog.WriteLine(1, "STATUS", "Finishing Statistician.Program.Main(). Waiting for user input.");
-			Console.ReadLine();
-		}
+	public struct Emote {
+		public Int32 ImageID;
+		public String Code;
+		public String Channel;
+		public String Set;
+		public String Description;
 	}
 }

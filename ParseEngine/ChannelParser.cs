@@ -26,7 +26,8 @@ namespace ParseEngine {
 
 	public static class ChannelParser {
 		public static void Parse(String logDir) {
-			AppLog.WriteLine(1, "STATUS", "Entering ChannelParser.Parse('" + logDir + "')");
+			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.ChannelParser.Parse().");
+			AppLog.WriteLine(5, "DEBUG", "   P1: " + logDir);
 			String[] logList = Directory.GetFiles(logDir);
 			foreach (String curLog in logList) {
 				ParseLog(curLog);
@@ -34,6 +35,8 @@ namespace ParseEngine {
 		}
 
 		private static void ParseLog(String logFile) {
+			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.ChannelParser.ParseLog().");
+			AppLog.WriteLine(5, "DEBUG", "   P1: " + logFile);
 			String curLine;
 			DateTime logDate;
 			DateTime.TryParseExact(
