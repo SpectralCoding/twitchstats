@@ -23,9 +23,29 @@ namespace DataManager {
 	using System;
 
 	public class DBDelta {
-		public String Table;
-		public Int32 TimeID;
-		public String Column;
-		public Int32 Delta;
+		private String m_table;
+		private Int32 m_timeID;
+		private String m_column;
+		private Int32 m_delta;
+
+		public String Table {
+			get { return this.m_table; }
+			set { this.m_table = value; }
+		}
+
+		public Int32 TimeID {
+			get { return this.m_timeID; }
+			set { this.m_timeID = value; }
+		}
+
+		public String Column {
+			get { return this.m_column; }
+			set { this.m_column = value; }
+		}
+
+		public Int32 Delta {
+			get { return this.m_delta; }
+			set { this.m_delta = value; }
+		}
 	}
 }

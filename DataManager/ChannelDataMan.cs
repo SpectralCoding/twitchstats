@@ -27,7 +27,9 @@ namespace DataManager {
 	public static class ChannelDataMan {
 		public static Boolean ChannelExists(String channelName) {
 			AppLog.WriteLine(5, "DEBUG", "Checking if Channel \"" + channelName + "\" exists.");
-			MySqlCommand checkCmd = new MySqlCommand("SELECT * FROM `_global$channel_list` WHERE `channel` = @channel LIMIT 1;", DBManager.DbConnection);
+			MySqlCommand checkCmd = new MySqlCommand(
+				"SELECT * FROM `_global$channel_list` WHERE `channel` = @channel LIMIT 1;",
+				DBManager.DbConnection);
 			checkCmd.Parameters.AddWithValue("@channel", channelName);
 			if (Convert.ToInt32(checkCmd.ExecuteScalar()) > 0) {
 				return true;
@@ -51,7 +53,9 @@ namespace DataManager {
 
 		public static Int32 GetChannelID(String channelName) {
 			AppLog.WriteLine(5, "DEBUG", "Getting ID for Channel \"" + channelName + "\".");
-			MySqlCommand selectCmd = new MySqlCommand("SELECT * FROM `_global$channel_list` WHERE `channel` = @channel LIMIT 1;", DBManager.DbConnection);
+			MySqlCommand selectCmd = new MySqlCommand(
+				"SELECT * FROM `_global$channel_list` WHERE `channel` = @channel LIMIT 1;",
+				DBManager.DbConnection);
 			selectCmd.Parameters.AddWithValue("@channel", channelName);
 			using (MySqlDataReader reader = selectCmd.ExecuteReader()) {
 				while (reader.Read()) {

@@ -25,8 +25,23 @@ namespace DataManager {
 	using System.Collections.Generic;
 
 	public class DBDeltaRow {
-		public String Table;
-		public Int32 TimeID;
-		public Dictionary<String, Int32> Values = new Dictionary<String, Int32>();
+		private String m_table;
+		private Int32 m_timeID;
+		private Dictionary<String, Int32> m_values = new Dictionary<String, Int32>();
+
+		public string Table {
+			get { return this.m_table; }
+			set { this.m_table = value; }
+		}
+
+		public int TimeID {
+			get { return this.m_timeID; }
+			set { this.m_timeID = value; }
+		}
+
+		public Dictionary<string, int> Values {
+			get { return this.m_values; }
+			set { this.m_values = value; }
+		}
 	}
 }
