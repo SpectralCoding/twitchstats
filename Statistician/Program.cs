@@ -37,8 +37,8 @@ namespace Statistician {
 				"Entered Statistician.Program.Main(). TwitchStats v" + Assembly.GetExecutingAssembly().GetName().Version + " started.");
 			AppLog.SetLogLevel(Statistician.Properties.Settings.Default.LogLevel);
 			DBManager.OpenDatabase(Statistician.Properties.Settings.Default.ConnectionString);
-			////DataGatherer.Download();
-			TwitchNetwork.Parse(Statistician.Properties.Settings.Default.IRCLogDir);
+			DataGatherer.Download();
+			////TwitchNetwork.Parse(Statistician.Properties.Settings.Default.IRCLogDir);
 			AppLog.WriteLine(1, "STATUS", "Finishing Statistician.Program.Main(). Waiting for user input.");
 			Console.ReadLine();
 		}
