@@ -24,8 +24,9 @@ namespace ParseEngine {
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.IO;
-	using Utility;
 	using DataManager;
+	using MySql.Data.MySqlClient;
+	using Utility;
 
 	public static class ChannelParser {
 		public static void Parse(String logDir, String channelName) {
@@ -37,7 +38,9 @@ namespace ParseEngine {
 			}
 			Int32 channelID = ChannelDataMan.GetChannelID(channelName);
 			Dictionary<String, LogRecord> parseList = GetLogsToParse(logDir, channelName, channelID);
+			List<MySqlCommand> commandList = new List<MySqlCommand>();
 			foreach (KeyValuePair<String, LogRecord> curKVP in parseList) {
+				// Add all the commands from this log into the list.
 				ParseLog(logDir, channelName, curKVP.Value, channelID);
 			}
 		}
@@ -56,7 +59,7 @@ namespace ParseEngine {
 					newLogRecord.LastSize = 0;
 					newLogRecord.LastLine = 0;
 					returnLogs.Add(newLogRecord.Filename, newLogRecord);
-                }
+				}
 			}
 			foreach (KeyValuePair<String, LogRecord> curKVP in channelLogs) {
 				LogRecord tempLogRecord = curKVP.Value;
@@ -72,6 +75,7 @@ namespace ParseEngine {
 			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.ChannelParser.ParseLog().");
 			AppLog.WriteLine(5, "DEBUG", "   Parsing: " + logRecord.Filename);
 			AppLog.WriteLine(5, "DEBUG", "      Starting at Line " + logRecord.LastLine + ".");
+			List<DBDelta> deltaList = new List<DBDelta>();
 			Int32 lineNumber = 0;
 			String curLine;
 			DateTime logDate;
@@ -84,20 +88,114 @@ namespace ParseEngine {
 			StreamReader logSR = new StreamReader(logRecord.CurrentInfo.FullName);
 			while ((curLine = logSR.ReadLine()) != null) {
 				if (logRecord.LastLine < lineNumber) {
-					ParseLine(curLine, logDate);
+					deltaList.AddRange(ParseLine(curLine, logDate, channelName));
 				}
 				lineNumber++;
 			}
 			// Make sure we have the latest size.
 			logRecord.CurrentInfo = new FileInfo(logRecord.CurrentInfo.FullName);
-            if (logRecord.LastSize == 0) {
+			// Reduce the deltas for this log into individual changes for each row and apply them.
+			ApplyDeltas(ConsolidateDeltas(deltaList));
+			// Update the database with new metric counts here.
+			if (logRecord.LastSize == 0) {
 				LogDataMan.AddLog(logRecord.Filename, channelID, false, logRecord.CurrentInfo.Length, lineNumber);
 			} else if (logRecord.LastLine < lineNumber) {
 				LogDataMan.UpdateLog(logRecord, lineNumber);
 			}
-        }
+		}
 
-		private static void ParseLine(String line, DateTime date) {
+		private static List<DBDeltaRow> ConsolidateDeltas(List<DBDelta> deltas) {
+			List<DBDeltaRow> returnDeltaRows = new List<DBDeltaRow>();
+			foreach (DBDelta curBulkDelta in deltas) {
+				Boolean hasBeenAdded = false;
+				foreach (DBDeltaRow curReturnDeltaRow in returnDeltaRows) {
+					if (curReturnDeltaRow.Table == curBulkDelta.Table) {
+						if (curReturnDeltaRow.TimeID == curBulkDelta.TimeID) {
+							if (curReturnDeltaRow.Values.ContainsKey(curBulkDelta.Column)) {
+								// We found an item in our returnDelta list which matches the table, the time id, and the column.
+								curReturnDeltaRow.Values[curBulkDelta.Column] += curBulkDelta.Delta;
+							} else {
+								curReturnDeltaRow.Values.Add(curBulkDelta.Column, curBulkDelta.Delta);
+							}
+							hasBeenAdded = true;
+						}
+					}
+				}
+				if (!hasBeenAdded) {
+					// We never found a matching item so we'll add one now.
+					DBDeltaRow temp = new DBDeltaRow() { Table = curBulkDelta.Table, TimeID = curBulkDelta.TimeID };
+					temp.Values.Add(curBulkDelta.Column, curBulkDelta.Delta);
+					returnDeltaRows.Add(temp);
+				}
+			}
+			return returnDeltaRows;
+		}
+
+		private static void ApplyDeltas(List<DBDeltaRow> deltas) {
+			Dictionary<String, List<DBDeltaRow>> tableDeltas = new Dictionary<string, List<DBDeltaRow>>();
+			// Split the delta list into per-table lists
+			foreach (DBDeltaRow curDeltaRow in deltas) {
+				if (tableDeltas.ContainsKey(curDeltaRow.Table)) {
+					tableDeltas[curDeltaRow.Table].Add(curDeltaRow);
+				} else {
+					tableDeltas.Add(curDeltaRow.Table, new List<DBDeltaRow> { curDeltaRow });
+				}
+			}
+			foreach (KeyValuePair<String, List<DBDeltaRow>> curTableKVP in tableDeltas) {
+				// For each table, get the time_ids from the table so we can figure out which ones to update.
+				List<Int32> timeIdList = new List<Int32>();
+				List<DBDeltaRow> insertList = new List<DBDeltaRow>();
+				MySqlCommand selectCmd = new MySqlCommand(@"SELECT time_id FROM `" + curTableKVP.Key + @"`;", DBManager.DbConnection);
+				using (MySqlDataReader reader = selectCmd.ExecuteReader()) {
+					while (reader.Read()) {
+						timeIdList.Add(reader.GetInt32(0));
+					}
+				}
+				foreach (DBDeltaRow curDeltaRow in curTableKVP.Value) {
+					if (timeIdList.Contains(curDeltaRow.TimeID)) {
+						// Update the time entry.
+						String updateSql = @"UPDATE `" + curDeltaRow.Table + @"` SET ";
+						foreach (String curColumn in curDeltaRow.Values.Keys) {
+							updateSql += "`" + curColumn + "` = `" + curColumn + "` + @" + curColumn + ", ";
+						}
+						updateSql = updateSql.Substring(0, updateSql.Length - 2);
+						updateSql += " WHERE `time_id` = @time_id";
+						MySqlCommand updateCmd = new MySqlCommand(updateSql, DBManager.DbConnection);
+						foreach (KeyValuePair<String, Int32> curColumn in curDeltaRow.Values) {
+							updateCmd.Parameters.AddWithValue("@" + curColumn.Key, curColumn.Value);
+						}
+						updateCmd.Parameters.AddWithValue("@time_id", curDeltaRow.TimeID);
+						updateCmd.ExecuteNonQuery();
+					} else {
+						// Add the delta to be added later because there is no time_id to update.
+						insertList.Add(curDeltaRow);
+					}
+				}
+				foreach (DBDeltaRow curNewRow in insertList) {
+					// Add all the new time entries.
+					String insertSql = @"INSERT INTO `" + curNewRow.Table + @"` (`time_id`, ";
+					foreach (String curColumn in curNewRow.Values.Keys) {
+						insertSql += "`" + curColumn + "`, ";
+					}
+					insertSql = insertSql.Substring(0, insertSql.Length - 2);
+					insertSql += ") VALUES (@time_id, ";
+					foreach (String curColumn in curNewRow.Values.Keys) {
+						insertSql += "@" + curColumn + ", ";
+					}
+					insertSql = insertSql.Substring(0, insertSql.Length - 2);
+					insertSql += ");";
+					MySqlCommand insertCmd = new MySqlCommand(insertSql, DBManager.DbConnection);
+					insertCmd.Parameters.AddWithValue("@time_id", curNewRow.TimeID);
+					foreach (KeyValuePair<String, Int32> curColumn in curNewRow.Values) {
+						insertCmd.Parameters.AddWithValue("@" + curColumn.Key, curColumn.Value);
+					}
+					insertCmd.ExecuteNonQuery();
+				}
+			}
+		}
+
+		private static List<DBDelta> ParseLine(String line, DateTime date, String channelName) {
+			List<DBDelta> returnList = new List<DBDelta>();
 			TimeSpan tempTS;
 			TimeSpan.TryParseExact(line.Substring(1, 8), @"hh\:mm\:ss", null, out tempTS);
 			date = date.Add(tempTS);
@@ -109,6 +207,7 @@ namespace ParseEngine {
 				Int32 endNickIndex = line.IndexOf('>');
 				username = line.Substring(12, endNickIndex - 12);
 				String message = line.Substring(endNickIndex + 2);
+				returnList.AddRange(LineParser.Message(date, channelName, username, message));
 			} else {
 				// If it's not a '<' then it HAS to be a '*'. No point in testing, it'll slow down processing.
 				// This is an action, join, part, or mode.
@@ -117,6 +216,7 @@ namespace ParseEngine {
 					Int32 endNickIndex = line.IndexOf(' ', 13);
 					username = line.Substring(13, endNickIndex - 13);
 					String message = line.Substring(endNickIndex + 1);
+					returnList.AddRange(LineParser.Action(date, channelName, username, message));
 				} else {
 					String beforeColon = line.Substring(15, line.IndexOf(':', 15) - 15);
 					switch (beforeColon) {
@@ -147,6 +247,7 @@ namespace ParseEngine {
 					}
 				}
 			}
+			return returnList;
 		}
 	}
 }

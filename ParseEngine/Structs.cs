@@ -19,17 +19,6 @@
 /// </license>
 /// <author>Caesar Kabalan</author>
 
-namespace DataManager {
+namespace ParseEngine {
 	using System;
-	using System.IO;
-
-	public struct LogRecord {
-		public Int32 ID;
-		public Int32 ChannelID;
-		public String Filename;
-		public Boolean IsClosed;
-		public Int64 LastSize;
-		public Int32 LastLine;
-		public FileInfo CurrentInfo;
-	}
 }

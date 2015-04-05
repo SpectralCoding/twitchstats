@@ -25,7 +25,6 @@ namespace DataManager {
 	using Utility;
 
 	public static class ChannelDataMan {
-
 		public static Boolean ChannelExists(String channelName) {
 			AppLog.WriteLine(5, "DEBUG", "Checking if Channel \"" + channelName + "\" exists.");
 			MySqlCommand checkCmd = new MySqlCommand("SELECT * FROM `_global$channel_list` WHERE `channel` = @channel LIMIT 1;", DBManager.DbConnection);

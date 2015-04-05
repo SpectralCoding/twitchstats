@@ -1,4 +1,4 @@
-﻿/// <copyright file="Structs.cs" company="SpectralCoding.com">
+﻿/// <copyright file="DBDelta.cs" company="SpectralCoding.com">
 ///     Copyright (c) 2015 SpectralCoding
 /// </copyright>
 /// <license>
@@ -21,15 +21,11 @@
 
 namespace DataManager {
 	using System;
-	using System.IO;
 
-	public struct LogRecord {
-		public Int32 ID;
-		public Int32 ChannelID;
-		public String Filename;
-		public Boolean IsClosed;
-		public Int64 LastSize;
-		public Int32 LastLine;
-		public FileInfo CurrentInfo;
+	public class DBDelta {
+		public String Table;
+		public Int32 TimeID;
+		public String Column;
+		public Int32 Delta;
 	}
 }

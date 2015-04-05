@@ -44,6 +44,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DBDelta.cs" />
+    <Compile Include="DBDeltaRow.cs" />
     <Compile Include="LogDataMan.cs" />
     <Compile Include="ChannelDataMan.cs" />
     <Compile Include="DBManager.cs" />

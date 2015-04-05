@@ -27,7 +27,6 @@ namespace DataManager {
 	using Utility;
 
 	public static class LogDataMan {
-
 		public static void AddLog(String fileName, Int32 channelID, Boolean isClosed, Int64 lastSize, Int32 lastLine) {
 			AppLog.WriteLine(5, "DEBUG", "   Adding Log DB Entry: " + fileName);
 			AppLog.WriteLine(5, "DEBUG", "      Channel ID: " + channelID);
@@ -69,10 +68,11 @@ namespace DataManager {
 			insertCmd.ExecuteNonQuery();
 		}
 
-
 		public static Dictionary<String, LogRecord> GetLogs(Int32 channelID) {
 			Dictionary<String, LogRecord> returnDict = new Dictionary<String, LogRecord>();
-			MySqlCommand selectCmd = new MySqlCommand(@"SELECT * FROM `_global$log_list` WHERE `channel_id` = @channel_id;", DBManager.DbConnection);
+			MySqlCommand selectCmd = new MySqlCommand(
+				@"SELECT * FROM `_global$log_list` WHERE `channel_id` = @channel_id;",
+				DBManager.DbConnection);
 			selectCmd.Parameters.AddWithValue("@channel_id", channelID);
 			using (MySqlDataReader reader = selectCmd.ExecuteReader()) {
 				while (reader.Read()) {
@@ -88,7 +88,5 @@ namespace DataManager {
 			}
 			return returnDict;
 		}
-
-
 	}
 }
