@@ -35,6 +35,18 @@ namespace ParseEngine {
 			returnList.AddRange(AddMessageChannel(date, "_global$15min_line_stats", 15));
 			returnList.AddRange(AddMessageChannel(date, "_global$30min_line_stats", 30));
 			returnList.AddRange(AddMessageChannel(date, "_global$1hr_line_stats", 60));
+			returnList.AddRange(AddMessageChannel(date, "_global$6hr_line_stats", 360));
+			returnList.AddRange(AddMessageChannel(date, "_global$12hr_line_stats", 720));
+			returnList.AddRange(AddMessageChannel(date, "_global$1day_line_stats", 1440));
+
+			returnList.AddRange(AddMessageChannel(date, channelName + "$1min_line_stats", 1));
+			returnList.AddRange(AddMessageChannel(date, channelName + "$5min_line_stats", 5));
+			returnList.AddRange(AddMessageChannel(date, channelName + "$15min_line_stats", 15));
+			returnList.AddRange(AddMessageChannel(date, channelName + "$30min_line_stats", 30));
+			returnList.AddRange(AddMessageChannel(date, channelName + "$1hr_line_stats", 60));
+			returnList.AddRange(AddMessageChannel(date, channelName + "$6hr_line_stats", 360));
+			returnList.AddRange(AddMessageChannel(date, channelName + "$12hr_line_stats", 720));
+			returnList.AddRange(AddMessageChannel(date, channelName + "$1day_line_stats", 1440));
 			return returnList;
 		}
 
@@ -45,6 +57,62 @@ namespace ParseEngine {
 			returnList.AddRange(AddActionChannel(date, "_global$15min_line_stats", 15));
 			returnList.AddRange(AddActionChannel(date, "_global$30min_line_stats", 30));
 			returnList.AddRange(AddActionChannel(date, "_global$1hr_line_stats", 60));
+			returnList.AddRange(AddActionChannel(date, "_global$6hr_line_stats", 360));
+			returnList.AddRange(AddActionChannel(date, "_global$12hr_line_stats", 720));
+			returnList.AddRange(AddActionChannel(date, "_global$1day_line_stats", 1440));
+
+			returnList.AddRange(AddActionChannel(date, channelName + "$1min_line_stats", 1));
+			returnList.AddRange(AddActionChannel(date, channelName + "$5min_line_stats", 5));
+			returnList.AddRange(AddActionChannel(date, channelName + "$15min_line_stats", 15));
+			returnList.AddRange(AddActionChannel(date, channelName + "$30min_line_stats", 30));
+			returnList.AddRange(AddActionChannel(date, channelName + "$1hr_line_stats", 60));
+			returnList.AddRange(AddActionChannel(date, channelName + "$6hr_line_stats", 360));
+			returnList.AddRange(AddActionChannel(date, channelName + "$12hr_line_stats", 720));
+			returnList.AddRange(AddActionChannel(date, channelName + "$1day_line_stats", 1440));
+			return returnList;
+		}
+
+		public static List<DBDelta> Join(DateTime date, String channelName, String username) {
+			List<DBDelta> returnList = new List<DBDelta>();
+			returnList.AddRange(AddJoinChannel(date, "_global$1min_line_stats", 1));
+			returnList.AddRange(AddJoinChannel(date, "_global$5min_line_stats", 5));
+			returnList.AddRange(AddJoinChannel(date, "_global$15min_line_stats", 15));
+			returnList.AddRange(AddJoinChannel(date, "_global$30min_line_stats", 30));
+			returnList.AddRange(AddJoinChannel(date, "_global$1hr_line_stats", 60));
+			returnList.AddRange(AddJoinChannel(date, "_global$6hr_line_stats", 360));
+			returnList.AddRange(AddJoinChannel(date, "_global$12hr_line_stats", 720));
+			returnList.AddRange(AddJoinChannel(date, "_global$1day_line_stats", 1440));
+
+			returnList.AddRange(AddJoinChannel(date, channelName + "$1min_line_stats", 1));
+			returnList.AddRange(AddJoinChannel(date, channelName + "$5min_line_stats", 5));
+			returnList.AddRange(AddJoinChannel(date, channelName + "$15min_line_stats", 15));
+			returnList.AddRange(AddJoinChannel(date, channelName + "$30min_line_stats", 30));
+			returnList.AddRange(AddJoinChannel(date, channelName + "$1hr_line_stats", 60));
+			returnList.AddRange(AddJoinChannel(date, channelName + "$6hr_line_stats", 360));
+			returnList.AddRange(AddJoinChannel(date, channelName + "$12hr_line_stats", 720));
+			returnList.AddRange(AddJoinChannel(date, channelName + "$1day_line_stats", 1440));
+			return returnList;
+		}
+
+		public static List<DBDelta> Part(DateTime date, String channelName, String username) {
+			List<DBDelta> returnList = new List<DBDelta>();
+			returnList.AddRange(AddPartChannel(date, "_global$1min_line_stats", 1));
+			returnList.AddRange(AddPartChannel(date, "_global$5min_line_stats", 5));
+			returnList.AddRange(AddPartChannel(date, "_global$15min_line_stats", 15));
+			returnList.AddRange(AddPartChannel(date, "_global$30min_line_stats", 30));
+			returnList.AddRange(AddPartChannel(date, "_global$1hr_line_stats", 60));
+			returnList.AddRange(AddPartChannel(date, "_global$6hr_line_stats", 360));
+			returnList.AddRange(AddPartChannel(date, "_global$12hr_line_stats", 720));
+			returnList.AddRange(AddPartChannel(date, "_global$1day_line_stats", 1440));
+
+			returnList.AddRange(AddPartChannel(date, channelName + "$1min_line_stats", 1));
+			returnList.AddRange(AddPartChannel(date, channelName + "$5min_line_stats", 5));
+			returnList.AddRange(AddPartChannel(date, channelName + "$15min_line_stats", 15));
+			returnList.AddRange(AddPartChannel(date, channelName + "$30min_line_stats", 30));
+			returnList.AddRange(AddPartChannel(date, channelName + "$1hr_line_stats", 60));
+			returnList.AddRange(AddPartChannel(date, channelName + "$6hr_line_stats", 360));
+			returnList.AddRange(AddPartChannel(date, channelName + "$12hr_line_stats", 720));
+			returnList.AddRange(AddPartChannel(date, channelName + "$1day_line_stats", 1440));
 			return returnList;
 		}
 
@@ -52,7 +120,6 @@ namespace ParseEngine {
 			List<DBDelta> returnList = new List<DBDelta>();
 			Int32 timeID = GetTimeID(date, accuracy);
 			returnList.Add(new DBDelta { TimeID = timeID, Table = tableName, Column = "messages", Delta = 1 });
-			returnList.Add(new DBDelta { TimeID = timeID, Table = tableName, Column = "total", Delta = 1 });
 			return returnList;
 		}
 
@@ -60,24 +127,26 @@ namespace ParseEngine {
 			List<DBDelta> returnList = new List<DBDelta>();
 			Int32 timeID = GetTimeID(date, accuracy);
 			returnList.Add(new DBDelta { TimeID = timeID, Table = tableName, Column = "actions", Delta = 1 });
-			returnList.Add(new DBDelta { TimeID = timeID, Table = tableName, Column = "total", Delta = 1 });
+			return returnList;
+		}
+
+		private static List<DBDelta> AddJoinChannel(DateTime date, String tableName, Int32 accuracy) {
+			List<DBDelta> returnList = new List<DBDelta>();
+			Int32 timeID = GetTimeID(date, accuracy);
+			returnList.Add(new DBDelta { TimeID = timeID, Table = tableName, Column = "joins", Delta = 1 });
+			return returnList;
+		}
+
+		private static List<DBDelta> AddPartChannel(DateTime date, String tableName, Int32 accuracy) {
+			List<DBDelta> returnList = new List<DBDelta>();
+			Int32 timeID = GetTimeID(date, accuracy);
+			returnList.Add(new DBDelta { TimeID = timeID, Table = tableName, Column = "parts", Delta = 1 });
 			return returnList;
 		}
 
 		private static Int32 GetTimeID(DateTime date, Int32 accuracyMinutes) {
 			DateTime fakeEpoch = new DateTime(2015, 1, 1, 0, 0, 0);
 			return Convert.ToInt32(Math.Floor((date - fakeEpoch).TotalMinutes / accuracyMinutes));
-		}
-
-		private static Boolean TimeIDExists(Int32 timeID, String tableName) {
-			MySqlCommand checkCmd = new MySqlCommand(
-				"SELECT * FROM `" + tableName + @"` WHERE `time_id` = @time_id LIMIT 1;",
-				DBManager.DbConnection);
-			checkCmd.Parameters.AddWithValue("@time_id", timeID);
-			if (Convert.ToInt32(checkCmd.ExecuteScalar()) > 0) {
-				return true;
-			}
-			return false;
 		}
 	}
 }

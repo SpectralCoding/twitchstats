@@ -38,7 +38,6 @@ namespace ParseEngine {
 			}
 			Int32 channelID = ChannelDataMan.GetChannelID(channelName);
 			Dictionary<String, LogRecord> parseList = GetLogsToParse(logDir, channelName, channelID);
-			List<MySqlCommand> commandList = new List<MySqlCommand>();
 			foreach (KeyValuePair<String, LogRecord> curKVP in parseList) {
 				// Add all the commands from this log into the list.
 				ParseLog(logDir, channelName, curKVP.Value, channelID);
@@ -159,7 +158,7 @@ namespace ParseEngine {
 							updateSql += "`" + curColumn + "` = `" + curColumn + "` + @" + curColumn + ", ";
 						}
 						updateSql = updateSql.Substring(0, updateSql.Length - 2);
-						updateSql += " WHERE `time_id` = @time_id";
+						updateSql += " WHERE `time_id` = @time_id LIMIT 1";
 						MySqlCommand updateCmd = new MySqlCommand(updateSql, DBManager.DbConnection);
 						foreach (KeyValuePair<String, Int32> curColumn in curDeltaRow.Values) {
 							updateCmd.Parameters.AddWithValue("@" + curColumn.Key, curColumn.Value);
@@ -171,25 +170,65 @@ namespace ParseEngine {
 						insertList.Add(curDeltaRow);
 					}
 				}
+				// Holy shit what the fuck is this line?
+				Dictionary<String, Dictionary<String, List<List<object>>>> insertFormats =
+					new Dictionary<String, Dictionary<String, List<List<object>>>>();
 				foreach (DBDeltaRow curNewRow in insertList) {
 					// Add all the new time entries.
-					String insertSql = @"INSERT INTO `" + curNewRow.Table + @"` (`time_id`, ";
+					String curFormat = @"(`time_id`, ";
 					foreach (String curColumn in curNewRow.Values.Keys) {
-						insertSql += "`" + curColumn + "`, ";
+						curFormat += "`" + curColumn + "`, ";
 					}
-					insertSql = insertSql.Substring(0, insertSql.Length - 2);
-					insertSql += ") VALUES (@time_id, ";
-					foreach (String curColumn in curNewRow.Values.Keys) {
-						insertSql += "@" + curColumn + ", ";
-					}
-					insertSql = insertSql.Substring(0, insertSql.Length - 2);
-					insertSql += ");";
-					MySqlCommand insertCmd = new MySqlCommand(insertSql, DBManager.DbConnection);
-					insertCmd.Parameters.AddWithValue("@time_id", curNewRow.TimeID);
+					curFormat = curFormat.Substring(0, curFormat.Length - 2) + @")";
+					List<object> curValues = new List<object>();
+					curValues.Add(curNewRow.TimeID);
 					foreach (KeyValuePair<String, Int32> curColumn in curNewRow.Values) {
-						insertCmd.Parameters.AddWithValue("@" + curColumn.Key, curColumn.Value);
+						curValues.Add(curColumn.Value);
 					}
-					insertCmd.ExecuteNonQuery();
+					if (!insertFormats.ContainsKey(curNewRow.Table)) {
+						insertFormats.Add(curNewRow.Table, new Dictionary<string, List<List<object>>>());
+					}
+					if (insertFormats[curNewRow.Table].ContainsKey(curFormat)) {
+						insertFormats[curNewRow.Table][curFormat].Add(curValues);
+					} else {
+						insertFormats[curNewRow.Table].Add(curFormat, new List<List<object>>() { curValues });
+					}
+				}
+				foreach (KeyValuePair<String, Dictionary<String, List<List<object>>>> curInsertTable in insertFormats) {
+					foreach (KeyValuePair<String, List<List<object>>> curInsertFormat in curInsertTable.Value) {
+						String insertSql = @"INSERT INTO `" + curInsertTable.Key + @"` " + curInsertFormat.Key + @" VALUES ";
+						Int32 rowCount = 0;
+						Int32 paramCount = 0;
+						MySqlCommand insertCmd = new MySqlCommand();
+						insertCmd.Connection = DBManager.DbConnection;
+						foreach (List<object> curValueList in curInsertFormat.Value) {
+							insertSql += "(";
+							foreach (object curValue in curValueList) {
+								insertSql += "@value_" + paramCount + @", ";
+								insertCmd.Parameters.AddWithValue("@value_" + paramCount, curValue);
+								paramCount++;
+							}
+							insertSql = insertSql.Substring(0, insertSql.Length - 2) + @"), ";
+							rowCount++;
+							if ((rowCount % 100) == 0) {
+								// Our row count is a multiple of 100 so submit.
+								insertSql = insertSql.Substring(0, insertSql.Length - 2);
+								insertCmd.CommandText = insertSql;
+								insertCmd.ExecuteNonQuery();
+								insertCmd = new MySqlCommand();
+								insertCmd.Connection = DBManager.DbConnection;
+								insertSql = @"INSERT INTO `" + curInsertTable.Key + @"` " + curInsertFormat.Key + @" VALUES ";
+								rowCount = 0;
+								paramCount = 0;
+							}
+						}
+						if (rowCount > 0) {
+							// Submit the remainder of the rows.
+							insertSql = insertSql.Substring(0, insertSql.Length - 2);
+							insertCmd.CommandText = insertSql;
+							insertCmd.ExecuteNonQuery();
+						}
+					}
 				}
 			}
 		}
@@ -200,10 +239,8 @@ namespace ParseEngine {
 			TimeSpan.TryParseExact(line.Substring(1, 8), @"hh\:mm\:ss", null, out tempTS);
 			date = date.Add(tempTS);
 			String username;
-			LineType lineType;
 			if (line.Substring(11, 1) == "<") {
 				// This is a regular chat message
-				lineType = LineType.Message;
 				Int32 endNickIndex = line.IndexOf('>');
 				username = line.Substring(12, endNickIndex - 12);
 				String message = line.Substring(endNickIndex + 2);
@@ -212,7 +249,6 @@ namespace ParseEngine {
 				// If it's not a '<' then it HAS to be a '*'. No point in testing, it'll slow down processing.
 				// This is an action, join, part, or mode.
 				if (line.Substring(12, 1) == " ") {
-					lineType = LineType.Action;
 					Int32 endNickIndex = line.IndexOf(' ', 13);
 					username = line.Substring(13, endNickIndex - 13);
 					String message = line.Substring(endNickIndex + 1);
@@ -222,18 +258,18 @@ namespace ParseEngine {
 					switch (beforeColon) {
 						case "Joins":
 							username = line.Substring(22, line.IndexOf(" ", 22) - 22);
+							returnList.AddRange(LineParser.Join(date, channelName, username));
 							break;
 						case "Parts":
 							username = line.Substring(22, line.IndexOf(" ", 22) - 22);
+							returnList.AddRange(LineParser.Part(date, channelName, username));
 							break;
 						case "jtv sets mode":
 							switch (line.Substring(30, 2)) {
 								case "+o":
-									lineType = LineType.ModePlusOperator;
 									username = line.Substring(33);
 									break;
 								case "-o":
-									lineType = LineType.ModeMinusOperator;
 									username = line.Substring(33);
 									break;
 								default:

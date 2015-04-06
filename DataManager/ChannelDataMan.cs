@@ -21,6 +21,8 @@
 
 namespace DataManager {
 	using System;
+	using System.Collections;
+	using System.Collections.Generic;
 	using MySql.Data.MySqlClient;
 	using Utility;
 
@@ -40,15 +42,22 @@ namespace DataManager {
 		public static void AddChannel(String channelName) {
 			AppLog.WriteLine(5, "DEBUG", "Adding Channel \"" + channelName + "\".");
 			MySqlCommand insertCmd = new MySqlCommand(
-				@"INSERT INTO
-				`_global$channel_list` (
-					`channel`
-				) VALUES (
-					@channel
-				);",
+				@"INSERT INTO `_global$channel_list` (`channel`) VALUES (@channel);",
 				DBManager.DbConnection);
 			insertCmd.Parameters.AddWithValue("@channel", channelName);
 			insertCmd.ExecuteNonQuery();
+			foreach (String curTime in new List<String>() { "1min", "5min", "15min", "30min", "1hr", "6hr", "12hr", "1day" }) {
+				AppLog.WriteLine(5, "DEBUG", "Creating Table \"" + channelName + @"$" + curTime + "_line_stats\".");
+				MySqlCommand createTable = new MySqlCommand(
+					@"CREATE TABLE IF NOT EXISTS `" + channelName + @"$" + curTime + @"_line_stats` (
+						`id` int(11) NOT NULL, `time_id` int(11) NOT NULL, `messages` int(11) NOT NULL,
+						`actions` int(11) NOT NULL, `joins` int(11) NOT NULL, `parts` int(11) NOT NULL
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+					ALTER TABLE `" + channelName + @"$" + curTime + @"_line_stats` ADD PRIMARY KEY (`id`);
+					ALTER TABLE `" + channelName + @"$" + curTime + @"_line_stats` MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;",
+					DBManager.DbConnection);
+				createTable.ExecuteNonQuery();
+			}
 		}
 
 		public static Int32 GetChannelID(String channelName) {
