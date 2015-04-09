@@ -33,25 +33,26 @@ namespace ParseEngine {
 			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.ChannelParser.Parse().");
 			AppLog.WriteLine(5, "DEBUG", "   LogDir: " + logDir);
 			AppLog.WriteLine(5, "DEBUG", "   ChannelName: " + channelName);
-			if (!ChannelDataMan.ChannelExists(channelName)) {
-				ChannelDataMan.AddChannel(channelName);
-			}
-			Int32 channelID = ChannelDataMan.GetChannelID(channelName);
-			Dictionary<String, LogRecord> parseList = GetLogsToParse(logDir, channelName, channelID);
+			////if (!ChannelDataMan.ChannelExists(channelName)) {
+			////	ChannelDataMan.AddChannel(channelName);
+			////}
+			////Int32 channelID = ChannelDataMan.GetChannelID(channelName);
+			Dictionary<String, LogRecord> parseList = GetLogsToParse(logDir, channelName);
 			foreach (KeyValuePair<String, LogRecord> curKVP in parseList) {
 				// Add all the commands from this log into the list.
-				ParseLog(logDir, channelName, curKVP.Value, channelID);
+				ParseLog(logDir, channelName, curKVP.Value);
 			}
 		}
 
-		public static Dictionary<String, LogRecord> GetLogsToParse(String logDir, String channelName, Int32 channelID) {
-			Dictionary<String, LogRecord> channelLogs = LogDataMan.GetLogs(channelID);
+		public static Dictionary<String, LogRecord> GetLogsToParse(String logDir, String channelName) {
+			Dictionary<String, LogRecord> channelLogs = LogDataMan.GetLogs(channelName);
+			// Something broken here. pick up here tomorrow.
 			Dictionary<String, LogRecord> returnLogs = new Dictionary<String, LogRecord>();
 			String[] logList = Directory.GetFiles(Path.Combine(logDir, channelName));
 			foreach (String curLog in logList) {
 				if (!channelLogs.ContainsKey(Path.GetFileName(curLog))) {
 					LogRecord newLogRecord = new LogRecord();
-					newLogRecord.ChannelID = channelID;
+					newLogRecord.ChannelName = channelName;
 					newLogRecord.CurrentInfo = new FileInfo(curLog);
 					newLogRecord.Filename = Path.GetFileName(curLog);
 					newLogRecord.IsClosed = false;
@@ -70,7 +71,7 @@ namespace ParseEngine {
 			return returnLogs;
 		}
 
-		private static void ParseLog(String logDir, String channelName, LogRecord logRecord, Int32 channelID) {
+		private static void ParseLog(String logDir, String channelName, LogRecord logRecord) {
 			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.ChannelParser.ParseLog().");
 			AppLog.WriteLine(5, "DEBUG", "   Parsing: " + logRecord.Filename);
 			AppLog.WriteLine(5, "DEBUG", "      Starting at Line " + logRecord.LastLine + ".");
@@ -87,7 +88,7 @@ namespace ParseEngine {
 			StreamReader logSR = new StreamReader(logRecord.CurrentInfo.FullName);
 			while ((curLine = logSR.ReadLine()) != null) {
 				if (logRecord.LastLine < lineNumber) {
-					deltaList.AddRange(ParseLine(curLine, logDate, channelName));
+					////deltaList.AddRange(ParseLine(curLine, logDate, channelName));
 				}
 				lineNumber++;
 			}
@@ -97,7 +98,16 @@ namespace ParseEngine {
 			ApplyDeltas(ConsolidateDeltas(deltaList));
 			// Update the database with new metric counts here.
 			if (logRecord.LastSize == 0) {
-				LogDataMan.AddLog(logRecord.Filename, channelID, false, logRecord.CurrentInfo.Length, lineNumber);
+				LogDataMan.UpdateLog(
+					new LogRecord {
+						ChannelName = channelName,
+						Filename = logRecord.Filename,
+						IsClosed = false,
+						LastLine = 0,
+						CurrentInfo = logRecord.CurrentInfo,
+                        LastSize = logRecord.CurrentInfo.Length
+					},
+					lineNumber);
 			} else if (logRecord.LastLine < lineNumber) {
 				LogDataMan.UpdateLog(logRecord, lineNumber);
 			}

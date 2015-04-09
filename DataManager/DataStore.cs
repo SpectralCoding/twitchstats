@@ -1,4 +1,4 @@
-﻿/// <copyright file="Structs.cs" company="SpectralCoding.com">
+﻿/// <copyright file="TwitchNetwork.cs" company="SpectralCoding.com">
 ///     Copyright (c) 2015 SpectralCoding
 /// </copyright>
 /// <license>
@@ -21,14 +21,22 @@
 
 namespace DataManager {
 	using System;
-	using System.IO;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Text;
+	using System.Threading.Tasks;
+	using StackExchange.Redis;
 
-	public struct LogRecord {
-		public String ChannelName;
-		public String Filename;
-		public Boolean IsClosed;
-		public Int64 LastSize;
-		public Int32 LastLine;
-		public FileInfo CurrentInfo;
+	public static class DataStore {
+		private static ConnectionMultiplexer s_redis;
+
+		public static ConnectionMultiplexer Redis {
+			get { return s_redis; }
+			set { s_redis = value; }
+		}
+
+		public static void Connect(String connectString) {
+			s_redis = ConnectionMultiplexer.Connect(connectString);
+		}
 	}
 }

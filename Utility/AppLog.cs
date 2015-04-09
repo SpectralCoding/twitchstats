@@ -21,6 +21,7 @@
 
 namespace Utility {
 	using System;
+	using System.Diagnostics;
 	using System.IO;
 
 	public static class AppLog {
@@ -58,6 +59,7 @@ namespace Utility {
 			s_logFile.Close();
 		}
 
+		[DebuggerStepThrough]
 		public static void WriteLine(Int32 level, String logType, String lineToAdd, Boolean firstLine = true) {
 			if (s_enabled) {
 				if (level <= s_logLevel) {
