@@ -24,8 +24,7 @@ namespace DataManager {
 	using System.IO;
 
 	public struct LogRecord {
-		public Int32 ID;
-		public Int32 ChannelID;
+		public String ChannelName;
 		public String Filename;
 		public Boolean IsClosed;
 		public Int64 LastSize;

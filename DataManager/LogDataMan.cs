@@ -23,66 +23,44 @@ namespace DataManager {
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
-	using MySql.Data.MySqlClient;
+	using StackExchange.Redis;
 	using Utility;
 
 	public static class LogDataMan {
-		public static void AddLog(String fileName, Int32 channelID, Boolean isClosed, Int64 lastSize, Int32 lastLine) {
-			AppLog.WriteLine(5, "DEBUG", "   Adding Log DB Entry: " + fileName);
-			AppLog.WriteLine(5, "DEBUG", "      Channel ID: " + channelID);
-			AppLog.WriteLine(5, "DEBUG", "       Is Closed: " + isClosed);
-			AppLog.WriteLine(5, "DEBUG", "       Last Size: " + lastSize);
-			AppLog.WriteLine(5, "DEBUG", "       Last Line: " + lastLine);
-			MySqlCommand insertCmd = new MySqlCommand(
-				@"INSERT INTO `_global$log_list` (
-					`filename`, `channel_id`, `is_closed`, `last_size`, `last_line`
-				) VALUES (
-					@filename, @channel_id, @is_closed, @last_size, @last_line
-				)",
-				DBManager.DbConnection);
-			insertCmd.Parameters.AddWithValue("@filename", fileName);
-			insertCmd.Parameters.AddWithValue("@channel_id", channelID);
-			insertCmd.Parameters.AddWithValue("@is_closed", isClosed);
-			insertCmd.Parameters.AddWithValue("@last_size", lastSize);
-			insertCmd.Parameters.AddWithValue("@last_line", lastLine);
-			insertCmd.ExecuteNonQuery();
-		}
-
 		public static void UpdateLog(LogRecord logRecord, Int32 lastLine) {
 			AppLog.WriteLine(5, "DEBUG", "   Updating Log DB Entry: " + logRecord.Filename);
-			AppLog.WriteLine(5, "DEBUG", "      Channel ID: " + logRecord.ChannelID);
+			AppLog.WriteLine(5, "DEBUG", "         Channel: " + logRecord.ChannelName);
 			AppLog.WriteLine(5, "DEBUG", "       Is Closed: " + logRecord.IsClosed);
 			AppLog.WriteLine(5, "DEBUG", "       Last Size: " + logRecord.LastSize + " -> " + logRecord.CurrentInfo.Length);
 			AppLog.WriteLine(5, "DEBUG", "       Last Line: " + logRecord.LastLine + " -> " + lastLine);
-			MySqlCommand insertCmd = new MySqlCommand(
-				@"UPDATE `_global$log_list` SET
-					`is_closed` = @is_closed,
-					`last_size` = @last_size,
-					`last_line` = @last_line
-				WHERE `id` = @id ;",
-				DBManager.DbConnection);
-			insertCmd.Parameters.AddWithValue("@id", logRecord.ID);
-			insertCmd.Parameters.AddWithValue("@is_closed", logRecord.IsClosed);
-			insertCmd.Parameters.AddWithValue("@last_size", logRecord.CurrentInfo.Length);
-			insertCmd.Parameters.AddWithValue("@last_line", lastLine);
-			insertCmd.ExecuteNonQuery();
+			var db = DataStore.Redis.GetDatabase();
+			List<HashEntry> hashList = new List<HashEntry>();
+			hashList.Add(new HashEntry("channel_name", logRecord.ChannelName));
+			hashList.Add(new HashEntry("filename", logRecord.Filename));
+			hashList.Add(new HashEntry("is_closed", logRecord.IsClosed));
+			hashList.Add(new HashEntry("last_size", logRecord.LastSize));
+			hashList.Add(new HashEntry("last_line", lastLine));
+			db.HashSet("Log:" + logRecord.ChannelName + "|" + logRecord.Filename, hashList.ToArray(), CommandFlags.FireAndForget);
+			db.SetAdd("Logs", logRecord.ChannelName + "|" + logRecord.Filename, CommandFlags.FireAndForget);
 		}
 
-		public static Dictionary<String, LogRecord> GetLogs(Int32 channelID) {
+		public static Dictionary<String, LogRecord> GetLogs(String channelName) {
 			Dictionary<String, LogRecord> returnDict = new Dictionary<String, LogRecord>();
-			MySqlCommand selectCmd = new MySqlCommand(
-				@"SELECT * FROM `_global$log_list` WHERE `channel_id` = @channel_id;",
-				DBManager.DbConnection);
-			selectCmd.Parameters.AddWithValue("@channel_id", channelID);
-			using (MySqlDataReader reader = selectCmd.ExecuteReader()) {
-				while (reader.Read()) {
+			var db = DataStore.Redis.GetDatabase();
+			RedisValue[] logList = db.SetMembers("Logs");
+			foreach (RedisValue curLog in logList) {
+				if (curLog.ToString().Substring(0, curLog.ToString().IndexOf('|')) == channelName) {
+					HashEntry[] logAttrs = db.HashGetAll("Log:" + curLog);
 					LogRecord temp = new LogRecord();
-					temp.ID = reader.GetInt32("id");
-					temp.ChannelID = reader.GetInt32("channel_id");
-					temp.Filename = reader.GetString("filename");
-					temp.IsClosed = reader.GetBoolean("is_closed");
-					temp.LastSize = reader.GetInt64("last_size");
-					temp.LastLine = reader.GetInt32("last_line");
+					foreach (HashEntry curAttr in logAttrs) {
+						switch (curAttr.Name) {
+							case "channel_name": temp.ChannelName = Convert.ToString(curAttr.Value); break;
+							case "filename": temp.Filename = Convert.ToString(curAttr.Value); break;
+							case "is_closed": temp.IsClosed = curAttr.Value == 1; break;
+							case "last_size": temp.LastSize = Convert.ToInt64(curAttr.Value); break;
+							case "last_line": temp.LastLine = Convert.ToInt32(curAttr.Value); break;
+						}
+					}
 					returnDict.Add(temp.Filename, temp);
 				}
 			}

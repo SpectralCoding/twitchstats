@@ -1,4 +1,4 @@
-﻿/// <copyright file="DBDeltaRow.cs" company="SpectralCoding.com">
+﻿/// <copyright file="TwitchNetwork.cs" company="SpectralCoding.com">
 ///     Copyright (c) 2015 SpectralCoding
 /// </copyright>
 /// <license>
@@ -21,27 +21,22 @@
 
 namespace DataManager {
 	using System;
-	using System.Collections;
 	using System.Collections.Generic;
+	using System.Linq;
+	using System.Text;
+	using System.Threading.Tasks;
+	using StackExchange.Redis;
 
-	public class DBDeltaRow {
-		private String m_table;
-		private Int32 m_timeID;
-		private Dictionary<String, Int32> m_values = new Dictionary<String, Int32>();
+	public static class DataStore {
+		private static ConnectionMultiplexer s_redis;
 
-		public string Table {
-			get { return this.m_table; }
-			set { this.m_table = value; }
+		public static ConnectionMultiplexer Redis {
+			get { return s_redis; }
+			set { s_redis = value; }
 		}
 
-		public int TimeID {
-			get { return this.m_timeID; }
-			set { this.m_timeID = value; }
-		}
-
-		public Dictionary<string, int> Values {
-			get { return this.m_values; }
-			set { this.m_values = value; }
+		public static void Connect(String connectString) {
+			s_redis = ConnectionMultiplexer.Connect(connectString);
 		}
 	}
 }
