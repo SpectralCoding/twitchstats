@@ -3,13 +3,13 @@
   <Profiles />
   <Settings>
     <Setting Name="IRCLogDir" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">ChangeMe</Value>
+      <Value Profile="(Default)">C:\znclogs\</Value>
     </Setting>
     <Setting Name="LogLevel" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">4</Value>
     </Setting>
     <Setting Name="RedisConnectionString" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">ChangeMe</Value>
+      <Value Profile="(Default)">redis.hostname.com:6379,password=password_here</Value>
     </Setting>
   </Settings>
 </SettingsFile>

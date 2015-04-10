@@ -25,7 +25,7 @@ namespace Statistician.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("ChangeMe")]
+        [global::System.Configuration.DefaultSettingValueAttribute("C:\\znclogs\\")]
         public string IRCLogDir {
             get {
                 return ((string)(this["IRCLogDir"]));
@@ -43,7 +43,7 @@ namespace Statistician.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("ChangeMe")]
+        [global::System.Configuration.DefaultSettingValueAttribute("redis.hostname.com:6379,password=password_here")]
         public string RedisConnectionString {
             get {
                 return ((string)(this["RedisConnectionString"]));
