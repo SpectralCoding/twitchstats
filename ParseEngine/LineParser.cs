@@ -26,49 +26,90 @@ namespace ParseEngine {
 	using System.Math;
 	using System.Threading.Tasks;
 	using DataManager;
+	using EmoteManager;
 	using StackExchange.Redis;
+	using Utility;
 
 	public static class LineParser {
+		private static Int32[] s_accuracies;
+
+		public static Int32[] Accuracies {
+			get { return s_accuracies; }
+			set { s_accuracies = value; }
+		}
+
 		public static void Message(DateTime date, String channelName, String username, String message, List<Task> taskList) {
-			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
-			AddMessageChannel(date, "_global", accuracies, taskList);
-			AddMessageChannel(date, channelName, accuracies, taskList);
+			AddMessageChannel(date, "_global", taskList);
+			AddMessageChannel(date, channelName, taskList);
 		}
 
 		public static void Action(DateTime date, String channelName, String username, String message, List<Task> taskList) {
-			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
-			AddActionChannel(date, "_global", accuracies, taskList);
-			AddActionChannel(date, channelName, accuracies, taskList);
+			AddActionChannel(date, "_global", taskList);
+			AddActionChannel(date, channelName, taskList);
 		}
 
 		public static void Join(DateTime date, String channelName, String username, List<Task> taskList) {
-			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
-			AddJoinChannel(date, "_global", accuracies, taskList);
-			AddJoinChannel(date, channelName, accuracies, taskList);
+			AddJoinChannel(date, "_global", taskList);
+			AddJoinChannel(date, channelName, taskList);
 		}
 
 		public static void Part(DateTime date, String channelName, String username, List<Task> taskList) {
-			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
-			AddPartChannel(date, "_global", accuracies, taskList);
-			AddPartChannel(date, channelName, accuracies, taskList);
+			AddPartChannel(date, "_global", taskList);
+			AddPartChannel(date, channelName, taskList);
 		}
 
-		private static void AddMessageChannel(DateTime date, String channelName, Int32[] accuracies, List<Task> taskList) {
+		public static void ScanEmotes(DateTime date, String channelName, String username, String message, List<Task> taskList) {
+			// This isn't technically right because "KappaKappaKappa" would match three times when there needs to be spaces
+			// in between. Maybe it should be like since since it's probably the intention of the user. Checking for spaces
+			// would probably require using Regex or similar and would be expensive. We can try it though.
 			var db = DataStore.Redis.GetDatabase();
 			Int32 timeID;
-			foreach (Int32 curAcc in accuracies) {
+			for (Int32 i = 0; i < EmoteGatherer.EmoteArr.Length; i++) {
+				// Just for debugging
+				String emote = EmoteGatherer.EmoteArr[i];
+				Int32 occurances = (
+					message.Length - message.Replace(EmoteGatherer.EmoteArrSpacesAround[i], String.Empty).Length)
+					/ EmoteGatherer.EmoteArrSpacesAround[i].Length;
+				if (message.StartsWith(EmoteGatherer.EmoteArrSpaceAfter[i])) {
+					occurances++;
+				}
+				if (message.EndsWith(EmoteGatherer.EmoteArrSpaceBefore[i])) {
+					occurances++;
+				}
+				if (occurances > 0) {
+					////AppLog.WriteLine(5, "DEBUG", "         Message: " + message);
+					////AppLog.WriteLine(5, "DEBUG", "           Emote: " + emote  + " x " + occurances);
+					foreach (Int32 curAcc in Accuracies) {
+						timeID = GetTimeID(date, curAcc);
+						////String htSuffix = "|" + EmoteGatherer.EmoteArr[i] + "|" + curAcc + "|" + timeID;
+						////String htName = "Emote:_global|" + EmoteGatherer.EmoteArr[i];
+						String htField = curAcc + "|" + timeID;
+						taskList.Add(db.HashIncrementAsync("Emote:_global|" + emote, htField, occurances));
+						taskList.Add(db.HashIncrementAsync("Emote:" + channelName + "|" + emote, htField, occurances));
+						////taskList.Add(db.StringIncrementAsync("Emote:_global" + htSuffix, occurances));
+						////taskList.Add(db.StringIncrementAsync("Emote:" + channelName + htSuffix, occurances));
+					}
+				}
+			}
+		}
+
+		private static void AddMessageChannel(DateTime date, String channelName, List<Task> taskList) {
+			var db = DataStore.Redis.GetDatabase();
+			Int32 timeID;
+			foreach (Int32 curAcc in Accuracies) {
 				timeID = GetTimeID(date, curAcc);
 				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
 				taskList.Add(db.HashDecrementAsync(htName, "Messages"));
 				taskList.Add(db.HashDecrementAsync(htName, "Total"));
-				taskList.Add(db.SetAddAsync("Lines", htName));
+				// Leave this off until we're sure we need it
+				////taskList.Add(db.SetAddAsync("Lines", htName));
 			}
 		}
 
-		private static void AddActionChannel(DateTime date, String channelName, Int32[] accuracies, List<Task> taskList) {
+		private static void AddActionChannel(DateTime date, String channelName, List<Task> taskList) {
 			var db = DataStore.Redis.GetDatabase();
 			Int32 timeID;
-			foreach (Int32 curAcc in accuracies) {
+			foreach (Int32 curAcc in Accuracies) {
 				timeID = GetTimeID(date, curAcc);
 				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
 				////db.HashIncrement(htName, "Actions");
@@ -76,14 +117,15 @@ namespace ParseEngine {
 				////db.SetAdd("Lines", htName);
 				taskList.Add(db.HashDecrementAsync(htName, "Actions"));
 				taskList.Add(db.HashDecrementAsync(htName, "Total"));
-				taskList.Add(db.SetAddAsync("Lines", htName));
+				// Leave this off until we're sure we need it
+				////taskList.Add(db.SetAddAsync("Lines", htName));
 			}
 		}
 
-		private static void AddJoinChannel(DateTime date, String channelName, Int32[] accuracies, List<Task> taskList) {
+		private static void AddJoinChannel(DateTime date, String channelName, List<Task> taskList) {
 			var db = DataStore.Redis.GetDatabase();
 			Int32 timeID;
-			foreach (Int32 curAcc in accuracies) {
+			foreach (Int32 curAcc in Accuracies) {
 				timeID = GetTimeID(date, curAcc);
 				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
 				////db.HashIncrement(htName, "Joins");
@@ -91,14 +133,15 @@ namespace ParseEngine {
 				////db.SetAdd("Lines", htName);
 				taskList.Add(db.HashDecrementAsync(htName, "Joins"));
 				taskList.Add(db.HashDecrementAsync(htName, "Total"));
-				taskList.Add(db.SetAddAsync("Lines", htName));
+				// Leave this off until we're sure we need it
+				////taskList.Add(db.SetAddAsync("Lines", htName));
 			}
 		}
 
-		private static void AddPartChannel(DateTime date, String channelName, Int32[] accuracies, List<Task> taskList) {
+		private static void AddPartChannel(DateTime date, String channelName, List<Task> taskList) {
 			var db = DataStore.Redis.GetDatabase();
 			Int32 timeID;
-			foreach (Int32 curAcc in accuracies) {
+			foreach (Int32 curAcc in Accuracies) {
 				timeID = GetTimeID(date, curAcc);
 				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
 				////db.HashIncrement(htName, "Parts");
@@ -106,7 +149,8 @@ namespace ParseEngine {
 				////db.SetAdd("Lines", htName);
 				taskList.Add(db.HashDecrementAsync(htName, "Parts"));
 				taskList.Add(db.HashDecrementAsync(htName, "Total"));
-				taskList.Add(db.SetAddAsync("Lines", htName));
+				// Leave this off until we're sure we need it
+				////taskList.Add(db.SetAddAsync("Lines", htName));
 			}
 		}
 

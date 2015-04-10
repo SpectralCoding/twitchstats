@@ -35,6 +35,7 @@ namespace ParseEngine {
 			AppLog.WriteLine(4, "INFO", "Parse Channel: " + channelName);
 			AppLog.WriteLine(5, "DEBUG", "   LogDir: " + logDir);
 			AppLog.WriteLine(5, "DEBUG", "   ChannelName: " + channelName);
+			LineParser.Accuracies = new Int32[] { 1, 5, 15, 30, 60, 360, 720, 1440 };
 			////if (!ChannelDataMan.ChannelExists(channelName)) {
 			////	ChannelDataMan.AddChannel(channelName);
 			////}
@@ -142,6 +143,7 @@ namespace ParseEngine {
 				username = line.Substring(12, endNickIndex - 12);
 				String message = line.Substring(endNickIndex + 2);
 				LineParser.Message(date, channelName, username, message, taskList);
+				LineParser.ScanEmotes(date, channelName, username, message, taskList);
 			} else {
 				// If it's not a '<' then it HAS to be a '*'. No point in testing, it'll slow down processing.
 				// This is an action, join, part, or mode.
@@ -150,34 +152,36 @@ namespace ParseEngine {
 					username = line.Substring(13, endNickIndex - 13);
 					String message = line.Substring(endNickIndex + 1);
 					LineParser.Action(date, channelName, username, message, taskList);
+					LineParser.ScanEmotes(date, channelName, username, message, taskList);
 				} else {
-					String beforeColon = line.Substring(15, line.IndexOf(':', 15) - 15);
-					switch (beforeColon) {
-						case "Joins":
-							username = line.Substring(22, line.IndexOf(" ", 22) - 22);
-							LineParser.Join(date, channelName, username, taskList);
-							break;
-						case "Parts":
-							username = line.Substring(22, line.IndexOf(" ", 22) - 22);
-							LineParser.Part(date, channelName, username, taskList);
-							break;
-						case "jtv sets mode":
-							switch (line.Substring(30, 2)) {
-								case "+o":
-									username = line.Substring(33);
-									break;
-								case "-o":
-									username = line.Substring(33);
-									break;
-								default:
-									AppLog.WriteLine(3, "WARNING", "      Unknown Line: " + line);
-									break;
-							}
-							break;
-						default:
-							AppLog.WriteLine(3, "WARNING", "      Unknown Line: " + line);
-							break;
-					}
+					// We don't care about these yet and they just slow stuff down.
+					////String beforeColon = line.Substring(15, line.IndexOf(':', 15) - 15);
+					////switch (beforeColon) {
+					////	case "Joins":
+					////		username = line.Substring(22, line.IndexOf(" ", 22) - 22);
+					////		LineParser.Join(date, channelName, username, taskList);
+					////		break;
+					////	case "Parts":
+					////		username = line.Substring(22, line.IndexOf(" ", 22) - 22);
+					////		LineParser.Part(date, channelName, username, taskList);
+					////		break;
+					////	case "jtv sets mode":
+					////		switch (line.Substring(30, 2)) {
+					////			case "+o":
+					////				username = line.Substring(33);
+					////				break;
+					////			case "-o":
+					////				username = line.Substring(33);
+					////				break;
+					////			default:
+					////				AppLog.WriteLine(3, "WARNING", "      Unknown Line: " + line);
+					////				break;
+					////		}
+					////		break;
+					////	default:
+					////		AppLog.WriteLine(3, "WARNING", "      Unknown Line: " + line);
+					////		break;
+					////}
 				}
 			}
 			if (taskList.Count > 100000) {

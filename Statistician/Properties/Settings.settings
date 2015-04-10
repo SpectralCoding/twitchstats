@@ -6,7 +6,7 @@
       <Value Profile="(Default)">C:\znclogs\</Value>
     </Setting>
     <Setting Name="LogLevel" Type="System.Int32" Scope="Application">
-      <Value Profile="(Default)">4</Value>
+      <Value Profile="(Default)">5</Value>
     </Setting>
     <Setting Name="RedisConnectionString" Type="System.String" Scope="Application">
       <Value Profile="(Default)">redis.hostname.com:6379,password=password_here</Value>

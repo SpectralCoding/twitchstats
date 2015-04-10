@@ -47,8 +47,8 @@ namespace DataManager {
 		public static Dictionary<String, LogRecord> GetLogs(String channelName) {
 			Dictionary<String, LogRecord> returnDict = new Dictionary<String, LogRecord>();
 			var db = DataStore.Redis.GetDatabase();
-			RedisValue[] logList = db.SetMembers("Logs");
-			foreach (RedisValue curLog in logList) {
+			RedisValue[] logArr = db.SetMembers("Logs");
+			foreach (RedisValue curLog in logArr) {
 				if (curLog.ToString().Substring(0, curLog.ToString().IndexOf('|')) == channelName) {
 					HashEntry[] logAttrs = db.HashGetAll("Log:" + curLog);
 					LogRecord temp = new LogRecord();

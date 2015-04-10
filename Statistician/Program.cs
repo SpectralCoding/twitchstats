@@ -38,7 +38,7 @@ namespace Statistician {
 			AppLog.SetLogLevel(Statistician.Properties.Settings.Default.LogLevel);
 			////DBManager.OpenDatabase(Statistician.Properties.Settings.Default.ConnectionString);
 			DataStore.Connect(Statistician.Properties.Settings.Default.RedisConnectionString);
-			////DataGatherer.Download();
+			EmoteGatherer.Download();
 			TwitchNetwork.Parse(Statistician.Properties.Settings.Default.IRCLogDir);
 			AppLog.WriteLine(1, "STATUS", "Finishing Statistician.Program.Main(). Waiting for user input.");
 			Console.ReadLine();

@@ -23,23 +23,77 @@ namespace EmoteManager {
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Net;
+	using System.Threading.Tasks;
 	using DataManager;
 	using Newtonsoft.Json;
 	using Newtonsoft.Json.Linq;
 	using StackExchange.Redis;
 	using Utility;
 
-	public static class DataGatherer {
+	public static class EmoteGatherer {
+		private static List<String> s_emoteList = new List<String>();
+		private static String[] s_emoteArr;
+		private static String[] s_emoteArrSpacesBefore;
+		private static String[] s_emoteArrSpacesAfter;
+		private static String[] s_emoteArrSpacesAround;
+
+		public static List<string> EmoteList {
+			get { return s_emoteList; }
+			set { s_emoteList = value; }
+		}
+
+		public static String[] EmoteArr {
+			get { return s_emoteArr; }
+			set { s_emoteArr = value; }
+		}
+
+		public static String[] EmoteArrSpaceBefore {
+			get { return s_emoteArrSpacesBefore; }
+			set { s_emoteArrSpacesBefore = value; }
+		}
+
+		public static String[] EmoteArrSpaceAfter {
+			get { return s_emoteArrSpacesAfter; }
+			set { s_emoteArrSpacesAfter = value; }
+		}
+
+		public static String[] EmoteArrSpacesAround {
+			get { return s_emoteArrSpacesAround; }
+			set { s_emoteArrSpacesAround = value; }
+		}
+
 		public static void Download() {
-			AppLog.WriteLine(1, "STATUS", "Entered EmoteManager.DataGatherer.Download().");
+			AppLog.WriteLine(1, "STATUS", "Entered EmoteManager.EmoteGatherer.Download().");
 			////GetGlobalEmotes();
 			////GetAllEmotes();
 			UpdateEmotes();
+			DumpEmotes();
+		}
+
+		private static void DumpEmotes() {
+			var db = DataStore.Redis.GetDatabase();
+			RedisValue[] emoteArr = db.SetMembers("Emotes");
+			foreach (RedisValue curEmote in emoteArr) {
+				EmoteList.Add(curEmote);
+			}
+			EmoteArr = EmoteList.ToArray();
+			EmoteArrSpaceAfter = new String[EmoteArr.Length];
+			EmoteArrSpaceBefore = new String[EmoteArr.Length];
+			EmoteArrSpacesAround = new String[EmoteArr.Length];
+			Array.Copy(EmoteArr, EmoteArrSpaceAfter, EmoteArr.Length);
+			Array.Copy(EmoteArr, EmoteArrSpaceBefore, EmoteArr.Length);
+			Array.Copy(EmoteArr, EmoteArrSpacesAround, EmoteArr.Length);
+			for (Int32 i = 0; i < EmoteArr.Length; i++) {
+				EmoteArrSpaceAfter[i] += " ";
+				EmoteArrSpaceBefore[i] = " " + EmoteArrSpaceBefore[i];
+				EmoteArrSpacesAround[i] = " " + EmoteArrSpacesAround[i] + " ";
+			}
 		}
 
 		private static void UpdateEmotes() {
-			AppLog.WriteLine(1, "STATUS", "Entered EmoteManager.DataGatherer.UpdateEmotes().");
+			AppLog.WriteLine(1, "STATUS", "Entered EmoteManager.EmoteGatherer.UpdateEmotes().");
 			var db = DataStore.Redis.GetDatabase();
 			var rawJSON = new WebClient().DownloadString(@"http://twitchemotes.com/api_cache/v2/images.json");
 			dynamic dynamicObj = JsonConvert.DeserializeObject(rawJSON);
@@ -49,6 +103,7 @@ namespace EmoteManager {
 					var jsonTopProperty = jsonTopToken as JProperty;
 					if (jsonTopProperty.Name == "images") {
 						// Begin a transaction so our query is faster.
+						List<Task> taskList = new List<Task>();
 						foreach (JToken jsonEmoteToken in jsonTopProperty.Value.Children()) {
 							var jsonEmoteProperty = jsonEmoteToken as JProperty;
 							AppLog.WriteLine(5, "DEBUG", "   Updating Emote Code \"" + jsonEmoteProperty.Value["code"] + "\".");
@@ -58,8 +113,17 @@ namespace EmoteManager {
 								new HashEntry("set_id", (jsonEmoteProperty.Value["set"] ?? String.Empty).ToString()),
 								new HashEntry("description", (jsonEmoteProperty.Value["description"] ?? String.Empty).ToString()),
 							};
-							db.HashSet("Emote:" + jsonEmoteProperty.Value["code"], emoteHash, CommandFlags.FireAndForget);
-							db.SetAdd("Emotes", jsonEmoteProperty.Value["code"].ToString(), CommandFlags.FireAndForget);
+							taskList.Add(db.HashSetAsync("Emote:" + jsonEmoteProperty.Value["code"], emoteHash));
+							taskList.Add(db.SetAddAsync("Emotes", jsonEmoteProperty.Value["code"].ToString(), CommandFlags.FireAndForget));
+							if (taskList.Count > 100000) {
+								Stopwatch stopWatch = new Stopwatch();
+								stopWatch.Start();
+								Task.WaitAll(taskList.ToArray());
+								taskList.Clear();
+								stopWatch.Stop();
+								TimeSpan ts = stopWatch.Elapsed;
+								AppLog.WriteLine(5, "DEBUG", "         Waiting for Redis: " + ts.TotalMilliseconds + "ms");
+							}
 						}
 					}
 				}
