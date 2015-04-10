@@ -24,124 +24,99 @@ namespace ParseEngine {
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Math;
+	using System.Threading.Tasks;
 	using DataManager;
-	using MySql.Data.MySqlClient;
+	using StackExchange.Redis;
 
 	public static class LineParser {
-		public static List<DBDelta> Message(DateTime date, String channelName, String username, String message) {
-			List<DBDelta> returnList = new List<DBDelta>();
-			returnList.AddRange(AddMessageChannel(date, "_global$1min_line_stats", 1));
-			returnList.AddRange(AddMessageChannel(date, "_global$5min_line_stats", 5));
-			returnList.AddRange(AddMessageChannel(date, "_global$15min_line_stats", 15));
-			returnList.AddRange(AddMessageChannel(date, "_global$30min_line_stats", 30));
-			returnList.AddRange(AddMessageChannel(date, "_global$1hr_line_stats", 60));
-			returnList.AddRange(AddMessageChannel(date, "_global$6hr_line_stats", 360));
-			returnList.AddRange(AddMessageChannel(date, "_global$12hr_line_stats", 720));
-			returnList.AddRange(AddMessageChannel(date, "_global$1day_line_stats", 1440));
-
-			returnList.AddRange(AddMessageChannel(date, channelName + "$1min_line_stats", 1));
-			returnList.AddRange(AddMessageChannel(date, channelName + "$5min_line_stats", 5));
-			returnList.AddRange(AddMessageChannel(date, channelName + "$15min_line_stats", 15));
-			returnList.AddRange(AddMessageChannel(date, channelName + "$30min_line_stats", 30));
-			returnList.AddRange(AddMessageChannel(date, channelName + "$1hr_line_stats", 60));
-			returnList.AddRange(AddMessageChannel(date, channelName + "$6hr_line_stats", 360));
-			returnList.AddRange(AddMessageChannel(date, channelName + "$12hr_line_stats", 720));
-			returnList.AddRange(AddMessageChannel(date, channelName + "$1day_line_stats", 1440));
-			return returnList;
+		public static void Message(DateTime date, String channelName, String username, String message) {
+			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
+			AddMessageChannel(date, "_global", accuracies);
+			AddMessageChannel(date, channelName, accuracies);
 		}
 
-		public static List<DBDelta> Action(DateTime date, String channelName, String username, String message) {
-			List<DBDelta> returnList = new List<DBDelta>();
-			returnList.AddRange(AddActionChannel(date, "_global$1min_line_stats", 1));
-			returnList.AddRange(AddActionChannel(date, "_global$5min_line_stats", 5));
-			returnList.AddRange(AddActionChannel(date, "_global$15min_line_stats", 15));
-			returnList.AddRange(AddActionChannel(date, "_global$30min_line_stats", 30));
-			returnList.AddRange(AddActionChannel(date, "_global$1hr_line_stats", 60));
-			returnList.AddRange(AddActionChannel(date, "_global$6hr_line_stats", 360));
-			returnList.AddRange(AddActionChannel(date, "_global$12hr_line_stats", 720));
-			returnList.AddRange(AddActionChannel(date, "_global$1day_line_stats", 1440));
-
-			returnList.AddRange(AddActionChannel(date, channelName + "$1min_line_stats", 1));
-			returnList.AddRange(AddActionChannel(date, channelName + "$5min_line_stats", 5));
-			returnList.AddRange(AddActionChannel(date, channelName + "$15min_line_stats", 15));
-			returnList.AddRange(AddActionChannel(date, channelName + "$30min_line_stats", 30));
-			returnList.AddRange(AddActionChannel(date, channelName + "$1hr_line_stats", 60));
-			returnList.AddRange(AddActionChannel(date, channelName + "$6hr_line_stats", 360));
-			returnList.AddRange(AddActionChannel(date, channelName + "$12hr_line_stats", 720));
-			returnList.AddRange(AddActionChannel(date, channelName + "$1day_line_stats", 1440));
-			return returnList;
+		public static void Action(DateTime date, String channelName, String username, String message) {
+			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
+			AddActionChannel(date, "_global", accuracies);
+			AddActionChannel(date, channelName, accuracies);
 		}
 
-		public static List<DBDelta> Join(DateTime date, String channelName, String username) {
-			List<DBDelta> returnList = new List<DBDelta>();
-			returnList.AddRange(AddJoinChannel(date, "_global$1min_line_stats", 1));
-			returnList.AddRange(AddJoinChannel(date, "_global$5min_line_stats", 5));
-			returnList.AddRange(AddJoinChannel(date, "_global$15min_line_stats", 15));
-			returnList.AddRange(AddJoinChannel(date, "_global$30min_line_stats", 30));
-			returnList.AddRange(AddJoinChannel(date, "_global$1hr_line_stats", 60));
-			returnList.AddRange(AddJoinChannel(date, "_global$6hr_line_stats", 360));
-			returnList.AddRange(AddJoinChannel(date, "_global$12hr_line_stats", 720));
-			returnList.AddRange(AddJoinChannel(date, "_global$1day_line_stats", 1440));
-
-			returnList.AddRange(AddJoinChannel(date, channelName + "$1min_line_stats", 1));
-			returnList.AddRange(AddJoinChannel(date, channelName + "$5min_line_stats", 5));
-			returnList.AddRange(AddJoinChannel(date, channelName + "$15min_line_stats", 15));
-			returnList.AddRange(AddJoinChannel(date, channelName + "$30min_line_stats", 30));
-			returnList.AddRange(AddJoinChannel(date, channelName + "$1hr_line_stats", 60));
-			returnList.AddRange(AddJoinChannel(date, channelName + "$6hr_line_stats", 360));
-			returnList.AddRange(AddJoinChannel(date, channelName + "$12hr_line_stats", 720));
-			returnList.AddRange(AddJoinChannel(date, channelName + "$1day_line_stats", 1440));
-			return returnList;
+		public static void Join(DateTime date, String channelName, String username) {
+			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
+			AddJoinChannel(date, "_global", accuracies);
+			AddJoinChannel(date, channelName, accuracies);
 		}
 
-		public static List<DBDelta> Part(DateTime date, String channelName, String username) {
-			List<DBDelta> returnList = new List<DBDelta>();
-			returnList.AddRange(AddPartChannel(date, "_global$1min_line_stats", 1));
-			returnList.AddRange(AddPartChannel(date, "_global$5min_line_stats", 5));
-			returnList.AddRange(AddPartChannel(date, "_global$15min_line_stats", 15));
-			returnList.AddRange(AddPartChannel(date, "_global$30min_line_stats", 30));
-			returnList.AddRange(AddPartChannel(date, "_global$1hr_line_stats", 60));
-			returnList.AddRange(AddPartChannel(date, "_global$6hr_line_stats", 360));
-			returnList.AddRange(AddPartChannel(date, "_global$12hr_line_stats", 720));
-			returnList.AddRange(AddPartChannel(date, "_global$1day_line_stats", 1440));
-
-			returnList.AddRange(AddPartChannel(date, channelName + "$1min_line_stats", 1));
-			returnList.AddRange(AddPartChannel(date, channelName + "$5min_line_stats", 5));
-			returnList.AddRange(AddPartChannel(date, channelName + "$15min_line_stats", 15));
-			returnList.AddRange(AddPartChannel(date, channelName + "$30min_line_stats", 30));
-			returnList.AddRange(AddPartChannel(date, channelName + "$1hr_line_stats", 60));
-			returnList.AddRange(AddPartChannel(date, channelName + "$6hr_line_stats", 360));
-			returnList.AddRange(AddPartChannel(date, channelName + "$12hr_line_stats", 720));
-			returnList.AddRange(AddPartChannel(date, channelName + "$1day_line_stats", 1440));
-			return returnList;
+		public static void Part(DateTime date, String channelName, String username) {
+			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
+			AddPartChannel(date, "_global", accuracies);
+			AddPartChannel(date, channelName, accuracies);
 		}
 
-		private static List<DBDelta> AddMessageChannel(DateTime date, String tableName, Int32 accuracy) {
-			List<DBDelta> returnList = new List<DBDelta>();
-			Int32 timeID = GetTimeID(date, accuracy);
-			returnList.Add(new DBDelta { TimeID = timeID, Table = tableName, Column = "messages", Delta = 1 });
-			return returnList;
+		private static void AddMessageChannel(DateTime date, String channelName, Int32[] accuracies) {
+			var db = DataStore.Redis.GetDatabase();
+			Int32 timeID;
+			List<Task> submitList = new List<Task>();
+			foreach (Int32 curAcc in accuracies) {
+				timeID = GetTimeID(date, curAcc);
+				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
+				submitList.Add(db.HashDecrementAsync(htName, "Messages"));
+				submitList.Add(db.HashDecrementAsync(htName, "Total"));
+				submitList.Add(db.SetAddAsync("Lines", htName));
+			}
+			Console.WriteLine(submitList.Count);
+			Task.WaitAll(submitList.ToArray());
 		}
 
-		private static List<DBDelta> AddActionChannel(DateTime date, String tableName, Int32 accuracy) {
-			List<DBDelta> returnList = new List<DBDelta>();
-			Int32 timeID = GetTimeID(date, accuracy);
-			returnList.Add(new DBDelta { TimeID = timeID, Table = tableName, Column = "actions", Delta = 1 });
-			return returnList;
+		private static void AddActionChannel(DateTime date, String channelName, Int32[] accuracies) {
+			var db = DataStore.Redis.GetDatabase();
+			Int32 timeID;
+			List<Task> submitList = new List<Task>();
+			foreach (Int32 curAcc in accuracies) {
+				timeID = GetTimeID(date, curAcc);
+				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
+				////db.HashIncrement(htName, "Actions");
+				////db.HashIncrement(htName, "Total");
+				////db.SetAdd("Lines", htName);
+				submitList.Add(db.HashDecrementAsync(htName, "Actions"));
+				submitList.Add(db.HashDecrementAsync(htName, "Total"));
+				submitList.Add(db.SetAddAsync("Lines", htName));
+			}
+			Task.WaitAll(submitList.ToArray());
 		}
 
-		private static List<DBDelta> AddJoinChannel(DateTime date, String tableName, Int32 accuracy) {
-			List<DBDelta> returnList = new List<DBDelta>();
-			Int32 timeID = GetTimeID(date, accuracy);
-			returnList.Add(new DBDelta { TimeID = timeID, Table = tableName, Column = "joins", Delta = 1 });
-			return returnList;
+		private static void AddJoinChannel(DateTime date, String channelName, Int32[] accuracies) {
+			var db = DataStore.Redis.GetDatabase();
+			Int32 timeID;
+			List<Task> submitList = new List<Task>();
+			foreach (Int32 curAcc in accuracies) {
+				timeID = GetTimeID(date, curAcc);
+				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
+				////db.HashIncrement(htName, "Joins");
+				////db.HashIncrement(htName, "Total");
+				////db.SetAdd("Lines", htName);
+				submitList.Add(db.HashDecrementAsync(htName, "Joins"));
+				submitList.Add(db.HashDecrementAsync(htName, "Total"));
+				submitList.Add(db.SetAddAsync("Lines", htName));
+			}
+			Task.WaitAll(submitList.ToArray());
 		}
 
-		private static List<DBDelta> AddPartChannel(DateTime date, String tableName, Int32 accuracy) {
-			List<DBDelta> returnList = new List<DBDelta>();
-			Int32 timeID = GetTimeID(date, accuracy);
-			returnList.Add(new DBDelta { TimeID = timeID, Table = tableName, Column = "parts", Delta = 1 });
-			return returnList;
+		private static void AddPartChannel(DateTime date, String channelName, Int32[] accuracies) {
+			var db = DataStore.Redis.GetDatabase();
+			Int32 timeID;
+			List<Task> submitList = new List<Task>();
+			foreach (Int32 curAcc in accuracies) {
+				timeID = GetTimeID(date, curAcc);
+				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
+				////db.HashIncrement(htName, "Parts");
+				////db.HashIncrement(htName, "Total");
+				////db.SetAdd("Lines", htName);
+				submitList.Add(db.HashDecrementAsync(htName, "Parts"));
+				submitList.Add(db.HashDecrementAsync(htName, "Total"));
+				submitList.Add(db.SetAddAsync("Lines", htName));
+			}
+			Task.WaitAll(submitList.ToArray());
 		}
 
 		private static Int32 GetTimeID(DateTime date, Int32 accuracyMinutes) {

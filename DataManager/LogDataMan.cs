@@ -49,18 +49,20 @@ namespace DataManager {
 			var db = DataStore.Redis.GetDatabase();
 			RedisValue[] logList = db.SetMembers("Logs");
 			foreach (RedisValue curLog in logList) {
-				HashEntry[] logAttrs = db.HashGetAll("Log:" + curLog);
-				LogRecord temp = new LogRecord();
-				foreach (HashEntry curAttr in logAttrs) {
-					switch (curAttr.Name) {
-						case "channel_name": temp.ChannelName = Convert.ToString(curAttr.Value); break;
-						case "filename": temp.Filename = Convert.ToString(curAttr.Value); break;
-						case "is_closed": temp.IsClosed = (curAttr.Value == 1); break;
-						case "last_size": temp.LastSize = Convert.ToInt64(curAttr.Value); break;
-						case "last_line": temp.LastLine = Convert.ToInt32(curAttr.Value); break;
+				if (curLog.ToString().Substring(0, curLog.ToString().IndexOf('|')) == channelName) {
+					HashEntry[] logAttrs = db.HashGetAll("Log:" + curLog);
+					LogRecord temp = new LogRecord();
+					foreach (HashEntry curAttr in logAttrs) {
+						switch (curAttr.Name) {
+							case "channel_name": temp.ChannelName = Convert.ToString(curAttr.Value); break;
+							case "filename": temp.Filename = Convert.ToString(curAttr.Value); break;
+							case "is_closed": temp.IsClosed = (curAttr.Value == 1); break;
+							case "last_size": temp.LastSize = Convert.ToInt64(curAttr.Value); break;
+							case "last_line": temp.LastLine = Convert.ToInt32(curAttr.Value); break;
+						}
 					}
+					returnDict.Add(temp.Filename, temp);
 				}
-				returnDict.Add(temp.Filename, temp);
 			}
 			return returnDict;
 		}
