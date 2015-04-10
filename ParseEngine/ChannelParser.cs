@@ -23,14 +23,16 @@ namespace ParseEngine {
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.IO;
+	using System.Threading.Tasks;
 	using DataManager;
 	using MySql.Data.MySqlClient;
 	using Utility;
 
 	public static class ChannelParser {
 		public static void Parse(String logDir, String channelName) {
-			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.ChannelParser.Parse().");
+			AppLog.WriteLine(4, "INFO", "Parse Channel: " + channelName);
 			AppLog.WriteLine(5, "DEBUG", "   LogDir: " + logDir);
 			AppLog.WriteLine(5, "DEBUG", "   ChannelName: " + channelName);
 			////if (!ChannelDataMan.ChannelExists(channelName)) {
@@ -72,12 +74,12 @@ namespace ParseEngine {
 		}
 
 		private static void ParseLog(String logDir, String channelName, LogRecord logRecord) {
-			AppLog.WriteLine(1, "STATUS", "Entered ParseEngine.ChannelParser.ParseLog().");
-			AppLog.WriteLine(5, "DEBUG", "   Parsing: " + logRecord.Filename);
-			AppLog.WriteLine(5, "DEBUG", "      Starting at Line " + logRecord.LastLine + ".");
+			AppLog.WriteLine(4, "INFO", "   Parsing Log: " + logRecord.Filename);
+			AppLog.WriteLine(4, "INFO", "      Line: " + logRecord.LastLine);
 			Int32 lineNumber = 0;
 			String curLine;
 			DateTime logDate;
+			List<Task> taskList = new List<Task>();
 			DateTime.TryParseExact(
 				Path.GetFileNameWithoutExtension(logRecord.Filename),
 				"yyyy-MM-dd",
@@ -85,20 +87,25 @@ namespace ParseEngine {
 				System.Globalization.DateTimeStyles.None,
 				out logDate);
 			StreamReader logSR = new StreamReader(logRecord.CurrentInfo.FullName);
+			Stopwatch stopWatch = new Stopwatch();
+			stopWatch.Start();
 			while ((curLine = logSR.ReadLine()) != null) {
 				if (logRecord.LastLine < lineNumber) {
 					////deltaList.AddRange(ParseLine(curLine, logDate, channelName));
-					ParseLine(curLine, logDate, channelName);
-					if ((lineNumber % 100) == 0) {
-						AppLog.WriteLine(5, "DEBUG", "         Passing Line " + lineNumber + "...");
+					ParseLine(curLine, logDate, channelName, taskList);
+					if ((lineNumber % 1000) == 0) {
+						AppLog.WriteLine(5, "DEBUG", "            At Line: " + lineNumber);
 					}
-                }
+				}
 				lineNumber++;
 			}
 			// Make sure we have the latest size.
 			logRecord.CurrentInfo = new FileInfo(logRecord.CurrentInfo.FullName);
-			// Reduce the deltas for this log into individual changes for each row and apply them.
-			////ApplyDeltas(ConsolidateDeltas(deltaList));
+			stopWatch.Stop();
+			TimeSpan ts = stopWatch.Elapsed;
+			String speedText = (lineNumber - logRecord.LastLine) + " lines in " + ts.TotalSeconds.ToString("N2") +
+					"s (" + ((lineNumber - logRecord.LastLine) / ts.TotalSeconds).ToString("N0") + " lines/s)";
+			AppLog.WriteLine(4, "INFO", "      Speed: " + speedText);
 			// Update the database with new metric counts here.
 			if (logRecord.LastSize == 0) {
 				LogDataMan.UpdateLog(
@@ -108,7 +115,7 @@ namespace ParseEngine {
 						IsClosed = false,
 						LastLine = 0,
 						CurrentInfo = logRecord.CurrentInfo,
-                        LastSize = logRecord.CurrentInfo.Length
+						LastSize = logRecord.CurrentInfo.Length
 					},
 					lineNumber);
 			} else if (logRecord.LastLine < lineNumber) {
@@ -116,9 +123,17 @@ namespace ParseEngine {
 			}
 		}
 
-		private static void ParseLine(String line, DateTime date, String channelName) {
+		private static void ParseLine(String line, DateTime date, String channelName, List<Task> taskList) {
 			TimeSpan tempTS;
-			TimeSpan.TryParseExact(line.Substring(1, 8), @"hh\:mm\:ss", null, out tempTS);
+			if (line.Length < 12) {
+				// Our line is too short, so skip it.
+				// [HH:MM:SS] *
+				return;
+			}
+			if (!TimeSpan.TryParseExact(line.Substring(1, 8), @"hh\:mm\:ss", null, out tempTS)) {
+				// Out line doesn't begin with a valid timestamp so skip it.
+				return;
+			}
 			date = date.Add(tempTS);
 			String username;
 			if (line.Substring(11, 1) == "<") {
@@ -126,7 +141,7 @@ namespace ParseEngine {
 				Int32 endNickIndex = line.IndexOf('>');
 				username = line.Substring(12, endNickIndex - 12);
 				String message = line.Substring(endNickIndex + 2);
-				LineParser.Message(date, channelName, username, message);
+				LineParser.Message(date, channelName, username, message, taskList);
 			} else {
 				// If it's not a '<' then it HAS to be a '*'. No point in testing, it'll slow down processing.
 				// This is an action, join, part, or mode.
@@ -134,17 +149,17 @@ namespace ParseEngine {
 					Int32 endNickIndex = line.IndexOf(' ', 13);
 					username = line.Substring(13, endNickIndex - 13);
 					String message = line.Substring(endNickIndex + 1);
-					LineParser.Action(date, channelName, username, message);
+					LineParser.Action(date, channelName, username, message, taskList);
 				} else {
 					String beforeColon = line.Substring(15, line.IndexOf(':', 15) - 15);
 					switch (beforeColon) {
 						case "Joins":
 							username = line.Substring(22, line.IndexOf(" ", 22) - 22);
-							LineParser.Join(date, channelName, username);
+							LineParser.Join(date, channelName, username, taskList);
 							break;
 						case "Parts":
 							username = line.Substring(22, line.IndexOf(" ", 22) - 22);
-							LineParser.Part(date, channelName, username);
+							LineParser.Part(date, channelName, username, taskList);
 							break;
 						case "jtv sets mode":
 							switch (line.Substring(30, 2)) {
@@ -155,15 +170,24 @@ namespace ParseEngine {
 									username = line.Substring(33);
 									break;
 								default:
-									AppLog.WriteLine(3, "WARNING", "Unknown Line: " + line);
+									AppLog.WriteLine(3, "WARNING", "      Unknown Line: " + line);
 									break;
 							}
 							break;
 						default:
-							AppLog.WriteLine(3, "WARNING", "Unknown Line: " + line);
+							AppLog.WriteLine(3, "WARNING", "      Unknown Line: " + line);
 							break;
 					}
 				}
+			}
+			if (taskList.Count > 100000) {
+				Stopwatch stopWatch = new Stopwatch();
+				stopWatch.Start();
+				Task.WaitAll(taskList.ToArray());
+				taskList.Clear();
+				stopWatch.Stop();
+				TimeSpan ts = stopWatch.Elapsed;
+				AppLog.WriteLine(5, "DEBUG", "         Waiting for Redis: " + ts.TotalMilliseconds + "ms");
 			}
 		}
 	}

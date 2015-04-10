@@ -29,94 +29,85 @@ namespace ParseEngine {
 	using StackExchange.Redis;
 
 	public static class LineParser {
-		public static void Message(DateTime date, String channelName, String username, String message) {
+		public static void Message(DateTime date, String channelName, String username, String message, List<Task> taskList) {
 			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
-			AddMessageChannel(date, "_global", accuracies);
-			AddMessageChannel(date, channelName, accuracies);
+			AddMessageChannel(date, "_global", accuracies, taskList);
+			AddMessageChannel(date, channelName, accuracies, taskList);
 		}
 
-		public static void Action(DateTime date, String channelName, String username, String message) {
+		public static void Action(DateTime date, String channelName, String username, String message, List<Task> taskList) {
 			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
-			AddActionChannel(date, "_global", accuracies);
-			AddActionChannel(date, channelName, accuracies);
+			AddActionChannel(date, "_global", accuracies, taskList);
+			AddActionChannel(date, channelName, accuracies, taskList);
 		}
 
-		public static void Join(DateTime date, String channelName, String username) {
+		public static void Join(DateTime date, String channelName, String username, List<Task> taskList) {
 			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
-			AddJoinChannel(date, "_global", accuracies);
-			AddJoinChannel(date, channelName, accuracies);
+			AddJoinChannel(date, "_global", accuracies, taskList);
+			AddJoinChannel(date, channelName, accuracies, taskList);
 		}
 
-		public static void Part(DateTime date, String channelName, String username) {
+		public static void Part(DateTime date, String channelName, String username, List<Task> taskList) {
 			Int32[] accuracies = { 1, 5, 15, 30, 60, 360, 720, 1440 };
-			AddPartChannel(date, "_global", accuracies);
-			AddPartChannel(date, channelName, accuracies);
+			AddPartChannel(date, "_global", accuracies, taskList);
+			AddPartChannel(date, channelName, accuracies, taskList);
 		}
 
-		private static void AddMessageChannel(DateTime date, String channelName, Int32[] accuracies) {
+		private static void AddMessageChannel(DateTime date, String channelName, Int32[] accuracies, List<Task> taskList) {
 			var db = DataStore.Redis.GetDatabase();
 			Int32 timeID;
-			List<Task> submitList = new List<Task>();
 			foreach (Int32 curAcc in accuracies) {
 				timeID = GetTimeID(date, curAcc);
 				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
-				submitList.Add(db.HashDecrementAsync(htName, "Messages"));
-				submitList.Add(db.HashDecrementAsync(htName, "Total"));
-				submitList.Add(db.SetAddAsync("Lines", htName));
+				taskList.Add(db.HashDecrementAsync(htName, "Messages"));
+				taskList.Add(db.HashDecrementAsync(htName, "Total"));
+				taskList.Add(db.SetAddAsync("Lines", htName));
 			}
-			Console.WriteLine(submitList.Count);
-			Task.WaitAll(submitList.ToArray());
 		}
 
-		private static void AddActionChannel(DateTime date, String channelName, Int32[] accuracies) {
+		private static void AddActionChannel(DateTime date, String channelName, Int32[] accuracies, List<Task> taskList) {
 			var db = DataStore.Redis.GetDatabase();
 			Int32 timeID;
-			List<Task> submitList = new List<Task>();
 			foreach (Int32 curAcc in accuracies) {
 				timeID = GetTimeID(date, curAcc);
 				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
 				////db.HashIncrement(htName, "Actions");
 				////db.HashIncrement(htName, "Total");
 				////db.SetAdd("Lines", htName);
-				submitList.Add(db.HashDecrementAsync(htName, "Actions"));
-				submitList.Add(db.HashDecrementAsync(htName, "Total"));
-				submitList.Add(db.SetAddAsync("Lines", htName));
+				taskList.Add(db.HashDecrementAsync(htName, "Actions"));
+				taskList.Add(db.HashDecrementAsync(htName, "Total"));
+				taskList.Add(db.SetAddAsync("Lines", htName));
 			}
-			Task.WaitAll(submitList.ToArray());
 		}
 
-		private static void AddJoinChannel(DateTime date, String channelName, Int32[] accuracies) {
+		private static void AddJoinChannel(DateTime date, String channelName, Int32[] accuracies, List<Task> taskList) {
 			var db = DataStore.Redis.GetDatabase();
 			Int32 timeID;
-			List<Task> submitList = new List<Task>();
 			foreach (Int32 curAcc in accuracies) {
 				timeID = GetTimeID(date, curAcc);
 				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
 				////db.HashIncrement(htName, "Joins");
 				////db.HashIncrement(htName, "Total");
 				////db.SetAdd("Lines", htName);
-				submitList.Add(db.HashDecrementAsync(htName, "Joins"));
-				submitList.Add(db.HashDecrementAsync(htName, "Total"));
-				submitList.Add(db.SetAddAsync("Lines", htName));
+				taskList.Add(db.HashDecrementAsync(htName, "Joins"));
+				taskList.Add(db.HashDecrementAsync(htName, "Total"));
+				taskList.Add(db.SetAddAsync("Lines", htName));
 			}
-			Task.WaitAll(submitList.ToArray());
 		}
 
-		private static void AddPartChannel(DateTime date, String channelName, Int32[] accuracies) {
+		private static void AddPartChannel(DateTime date, String channelName, Int32[] accuracies, List<Task> taskList) {
 			var db = DataStore.Redis.GetDatabase();
 			Int32 timeID;
-			List<Task> submitList = new List<Task>();
 			foreach (Int32 curAcc in accuracies) {
 				timeID = GetTimeID(date, curAcc);
 				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
 				////db.HashIncrement(htName, "Parts");
 				////db.HashIncrement(htName, "Total");
 				////db.SetAdd("Lines", htName);
-				submitList.Add(db.HashDecrementAsync(htName, "Parts"));
-				submitList.Add(db.HashDecrementAsync(htName, "Total"));
-				submitList.Add(db.SetAddAsync("Lines", htName));
+				taskList.Add(db.HashDecrementAsync(htName, "Parts"));
+				taskList.Add(db.HashDecrementAsync(htName, "Total"));
+				taskList.Add(db.SetAddAsync("Lines", htName));
 			}
-			Task.WaitAll(submitList.ToArray());
 		}
 
 		private static Int32 GetTimeID(DateTime date, Int32 accuracyMinutes) {

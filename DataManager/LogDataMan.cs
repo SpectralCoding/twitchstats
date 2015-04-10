@@ -56,7 +56,7 @@ namespace DataManager {
 						switch (curAttr.Name) {
 							case "channel_name": temp.ChannelName = Convert.ToString(curAttr.Value); break;
 							case "filename": temp.Filename = Convert.ToString(curAttr.Value); break;
-							case "is_closed": temp.IsClosed = (curAttr.Value == 1); break;
+							case "is_closed": temp.IsClosed = curAttr.Value == 1; break;
 							case "last_size": temp.LastSize = Convert.ToInt64(curAttr.Value); break;
 							case "last_line": temp.LastLine = Convert.ToInt32(curAttr.Value); break;
 						}
