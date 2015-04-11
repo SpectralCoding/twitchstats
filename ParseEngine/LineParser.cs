@@ -59,35 +59,17 @@ namespace ParseEngine {
 		}
 
 		public static void ScanEmotes(DateTime date, String channelName, String username, String message, List<Task> taskList) {
-			// This isn't technically right because "KappaKappaKappa" would match three times when there needs to be spaces
-			// in between. Maybe it should be like since since it's probably the intention of the user. Checking for spaces
-			// would probably require using Regex or similar and would be expensive. We can try it though.
 			var db = DataStore.Redis.GetDatabase();
 			Int32 timeID;
-			for (Int32 i = 0; i < EmoteGatherer.EmoteArr.Length; i++) {
-				// Just for debugging
-				String emote = EmoteGatherer.EmoteArr[i];
-				Int32 occurances = (
-					message.Length - message.Replace(EmoteGatherer.EmoteArrSpacesAround[i], String.Empty).Length)
-					/ EmoteGatherer.EmoteArrSpacesAround[i].Length;
-				if (message.StartsWith(EmoteGatherer.EmoteArrSpaceAfter[i])) {
-					occurances++;
-				}
-				if (message.EndsWith(EmoteGatherer.EmoteArrSpaceBefore[i])) {
-					occurances++;
-				}
-				if (occurances > 0) {
-					////AppLog.WriteLine(5, "DEBUG", "         Message: " + message);
-					////AppLog.WriteLine(5, "DEBUG", "           Emote: " + emote  + " x " + occurances);
+			Int32 occurances = 0;
+			String[] words = message.Split(' ');
+			for (Int32 wordIdx = 0; wordIdx < words.Length; wordIdx++) {
+				if (EmoteGatherer.EmoteHashSet.Contains(words[wordIdx])) {
 					foreach (Int32 curAcc in Accuracies) {
 						timeID = GetTimeID(date, curAcc);
-						////String htSuffix = "|" + EmoteGatherer.EmoteArr[i] + "|" + curAcc + "|" + timeID;
-						////String htName = "Emote:_global|" + EmoteGatherer.EmoteArr[i];
 						String htField = curAcc + "|" + timeID;
-						taskList.Add(db.HashIncrementAsync("Emote:_global|" + emote, htField, occurances));
-						taskList.Add(db.HashIncrementAsync("Emote:" + channelName + "|" + emote, htField, occurances));
-						////taskList.Add(db.StringIncrementAsync("Emote:_global" + htSuffix, occurances));
-						////taskList.Add(db.StringIncrementAsync("Emote:" + channelName + htSuffix, occurances));
+						taskList.Add(db.HashIncrementAsync("Emote:_global|" + words[wordIdx], htField, occurances));
+						taskList.Add(db.HashIncrementAsync("Emote:" + channelName + "|" + words[wordIdx], htField, occurances));
 					}
 				}
 			}

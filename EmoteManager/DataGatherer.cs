@@ -35,9 +35,7 @@ namespace EmoteManager {
 	public static class EmoteGatherer {
 		private static List<String> s_emoteList = new List<String>();
 		private static String[] s_emoteArr;
-		private static String[] s_emoteArrSpacesBefore;
-		private static String[] s_emoteArrSpacesAfter;
-		private static String[] s_emoteArrSpacesAround;
+		private static HashSet<String> s_emoteHashSet;
 
 		public static List<string> EmoteList {
 			get { return s_emoteList; }
@@ -49,19 +47,9 @@ namespace EmoteManager {
 			set { s_emoteArr = value; }
 		}
 
-		public static String[] EmoteArrSpaceBefore {
-			get { return s_emoteArrSpacesBefore; }
-			set { s_emoteArrSpacesBefore = value; }
-		}
-
-		public static String[] EmoteArrSpaceAfter {
-			get { return s_emoteArrSpacesAfter; }
-			set { s_emoteArrSpacesAfter = value; }
-		}
-
-		public static String[] EmoteArrSpacesAround {
-			get { return s_emoteArrSpacesAround; }
-			set { s_emoteArrSpacesAround = value; }
+		public static HashSet<String> EmoteHashSet {
+			get { return s_emoteHashSet; }
+			set { s_emoteHashSet = value; }
 		}
 
 		public static void Download() {
@@ -79,17 +67,7 @@ namespace EmoteManager {
 				EmoteList.Add(curEmote);
 			}
 			EmoteArr = EmoteList.ToArray();
-			EmoteArrSpaceAfter = new String[EmoteArr.Length];
-			EmoteArrSpaceBefore = new String[EmoteArr.Length];
-			EmoteArrSpacesAround = new String[EmoteArr.Length];
-			Array.Copy(EmoteArr, EmoteArrSpaceAfter, EmoteArr.Length);
-			Array.Copy(EmoteArr, EmoteArrSpaceBefore, EmoteArr.Length);
-			Array.Copy(EmoteArr, EmoteArrSpacesAround, EmoteArr.Length);
-			for (Int32 i = 0; i < EmoteArr.Length; i++) {
-				EmoteArrSpaceAfter[i] += " ";
-				EmoteArrSpaceBefore[i] = " " + EmoteArrSpaceBefore[i];
-				EmoteArrSpacesAround[i] = " " + EmoteArrSpacesAround[i] + " ";
-			}
+			EmoteHashSet = new HashSet<String>(EmoteArr);
 		}
 
 		private static void UpdateEmotes() {

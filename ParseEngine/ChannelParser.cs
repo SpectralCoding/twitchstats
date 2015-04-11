@@ -25,7 +25,7 @@ namespace ParseEngine {
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
-	using System.Threading.Tasks;
+    using System.Threading.Tasks;
 	using DataManager;
 	using MySql.Data.MySqlClient;
 	using Utility;
@@ -45,7 +45,7 @@ namespace ParseEngine {
 				// Add all the commands from this log into the list.
 				ParseLog(logDir, channelName, curKVP.Value);
 			}
-		}
+        }
 
 		public static Dictionary<String, LogRecord> GetLogsToParse(String logDir, String channelName) {
 			Dictionary<String, LogRecord> channelLogs = LogDataMan.GetLogs(channelName);
