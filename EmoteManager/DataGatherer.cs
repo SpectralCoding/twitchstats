@@ -52,11 +52,14 @@ namespace EmoteManager {
 			set { s_emoteHashSet = value; }
 		}
 
-		public static void Download() {
+		public static void Download(Boolean globalEmotesOnly) {
 			AppLog.WriteLine(1, "STATUS", "Entered EmoteManager.EmoteGatherer.Download().");
-			////GetGlobalEmotes();
+			if (globalEmotesOnly) {
+				GetGlobalEmotes();
+			} else {
+				UpdateAllEmotes();
+			}
 			////GetAllEmotes();
-			UpdateEmotes();
 			DumpEmotes();
 		}
 
@@ -70,8 +73,43 @@ namespace EmoteManager {
 			EmoteHashSet = new HashSet<String>(EmoteArr);
 		}
 
-		private static void UpdateEmotes() {
-			AppLog.WriteLine(1, "STATUS", "Entered EmoteManager.EmoteGatherer.UpdateEmotes().");
+		private static void GetGlobalEmotes() {
+			AppLog.WriteLine(1, "STATUS", "Entered EmoteManager.EmoteGatherer.UpdateAllEmotes().");
+			var db = DataStore.Redis.GetDatabase();
+			var rawJSON = new WebClient().DownloadString(@"http://twitchemotes.com/api_cache/v2/global.json");
+			dynamic dynamicObj = JsonConvert.DeserializeObject(rawJSON);
+			var jsonObj = (JObject)dynamicObj;
+			foreach (JToken jsonTopToken in jsonObj.Children()) {
+				if (jsonTopToken is JProperty) {
+					var jsonTopProperty = jsonTopToken as JProperty;
+					if (jsonTopProperty.Name == "emotes") {
+						List<Task> taskList = new List<Task>();
+						foreach (JToken jsonEmoteToken in jsonTopProperty.Value.Children()) {
+							var jsonEmoteProperty = jsonEmoteToken as JProperty;
+							AppLog.WriteLine(5, "DEBUG", "   Updating Emote Code \"" + jsonEmoteProperty.Name + "\".");
+							HashEntry[] emoteHash = new HashEntry[] {
+								new HashEntry("image_id", (jsonEmoteProperty.Value["image_id"] ?? String.Empty).ToString()),
+								new HashEntry("description", (jsonEmoteProperty.Value["description"] ?? String.Empty).ToString()),
+							};
+							taskList.Add(db.HashSetAsync("Emote:" + jsonEmoteProperty.Name, emoteHash));
+							taskList.Add(db.SetAddAsync("Emotes", jsonEmoteProperty.Name.ToString(), CommandFlags.FireAndForget));
+							if (taskList.Count > 100000) {
+								Stopwatch stopWatch = new Stopwatch();
+								stopWatch.Start();
+								Task.WaitAll(taskList.ToArray());
+								taskList.Clear();
+								stopWatch.Stop();
+								TimeSpan ts = stopWatch.Elapsed;
+								AppLog.WriteLine(5, "DEBUG", "         Waiting for Redis: " + ts.TotalMilliseconds + "ms");
+							}
+						}
+					}
+				}
+			}
+		}
+
+		private static void UpdateAllEmotes() {
+			AppLog.WriteLine(1, "STATUS", "Entered EmoteManager.EmoteGatherer.UpdateAllEmotes().");
 			var db = DataStore.Redis.GetDatabase();
 			var rawJSON = new WebClient().DownloadString(@"http://twitchemotes.com/api_cache/v2/images.json");
 			dynamic dynamicObj = JsonConvert.DeserializeObject(rawJSON);
@@ -80,7 +118,6 @@ namespace EmoteManager {
 				if (jsonTopToken is JProperty) {
 					var jsonTopProperty = jsonTopToken as JProperty;
 					if (jsonTopProperty.Name == "images") {
-						// Begin a transaction so our query is faster.
 						List<Task> taskList = new List<Task>();
 						foreach (JToken jsonEmoteToken in jsonTopProperty.Value.Children()) {
 							var jsonEmoteProperty = jsonEmoteToken as JProperty;

@@ -25,7 +25,7 @@ namespace ParseEngine {
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
-    using System.Threading.Tasks;
+	using System.Threading.Tasks;
 	using DataManager;
 	using MySql.Data.MySqlClient;
 	using Utility;
@@ -35,7 +35,7 @@ namespace ParseEngine {
 			AppLog.WriteLine(4, "INFO", "Parse Channel: " + channelName);
 			AppLog.WriteLine(5, "DEBUG", "   LogDir: " + logDir);
 			AppLog.WriteLine(5, "DEBUG", "   ChannelName: " + channelName);
-			LineParser.Accuracies = new Int32[] { 1, 5, 15, 30, 60, 360, 720, 1440 };
+			LineParser.Accuracies = new Int32[] { 5, 15, 30, 60, 360, 720, 1440 };
 			////if (!ChannelDataMan.ChannelExists(channelName)) {
 			////	ChannelDataMan.AddChannel(channelName);
 			////}
@@ -45,7 +45,7 @@ namespace ParseEngine {
 				// Add all the commands from this log into the list.
 				ParseLog(logDir, channelName, curKVP.Value);
 			}
-        }
+		}
 
 		public static Dictionary<String, LogRecord> GetLogsToParse(String logDir, String channelName) {
 			Dictionary<String, LogRecord> channelLogs = LogDataMan.GetLogs(channelName);

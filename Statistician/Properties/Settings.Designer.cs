@@ -49,5 +49,23 @@ namespace Statistician.Properties {
                 return ((string)(this["RedisConnectionString"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool GlobalEmotesOnly {
+            get {
+                return ((bool)(this["GlobalEmotesOnly"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("60")]
+        public int ParseBreakSeconds {
+            get {
+                return ((int)(this["ParseBreakSeconds"]));
+            }
+        }
     }
 }

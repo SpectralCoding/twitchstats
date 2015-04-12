@@ -23,6 +23,7 @@ namespace Statistician {
 	using System;
 	using System.Configuration;
 	using System.Reflection;
+	using System.Threading;
 	using DataManager;
 	using EmoteManager;
 	using ParseEngine;
@@ -36,12 +37,21 @@ namespace Statistician {
 				"STATUS",
 				"Entered Statistician.Program.Main(). TwitchStats v" + Assembly.GetExecutingAssembly().GetName().Version + " started.");
 			AppLog.SetLogLevel(Statistician.Properties.Settings.Default.LogLevel);
-			////DBManager.OpenDatabase(Statistician.Properties.Settings.Default.ConnectionString);
 			DataStore.Connect(Statistician.Properties.Settings.Default.RedisConnectionString);
-			EmoteGatherer.Download();
-			TwitchNetwork.Parse(Statistician.Properties.Settings.Default.IRCLogDir);
-			AppLog.WriteLine(1, "STATUS", "Finishing Statistician.Program.Main(). Waiting for user input.");
-			Console.ReadLine();
+			EmoteGatherer.Download(Statistician.Properties.Settings.Default.GlobalEmotesOnly);
+			while (true) {
+				TwitchNetwork.Parse(Statistician.Properties.Settings.Default.IRCLogDir);
+				WaitForInterrupt(Statistician.Properties.Settings.Default.ParseBreakSeconds);
+			}
+			////AppLog.WriteLine(1, "STATUS", "Finishing Statistician.Program.Main(). Waiting for user input.");
+			////Console.ReadLine();
+		}
+
+		private static void WaitForInterrupt(Int32 pauseSeconds) {
+			for (Int32 i = pauseSeconds; i > 0; i--) {
+				Console.Write("\rWaiting " + i + "s before processing again...   \r");
+				Thread.Sleep(1000);
+			}
 		}
 	}
 }

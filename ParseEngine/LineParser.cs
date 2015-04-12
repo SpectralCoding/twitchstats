@@ -61,15 +61,17 @@ namespace ParseEngine {
 		public static void ScanEmotes(DateTime date, String channelName, String username, String message, List<Task> taskList) {
 			var db = DataStore.Redis.GetDatabase();
 			Int32 timeID;
-			Int32 occurances = 0;
 			String[] words = message.Split(' ');
 			for (Int32 wordIdx = 0; wordIdx < words.Length; wordIdx++) {
 				if (EmoteGatherer.EmoteHashSet.Contains(words[wordIdx])) {
 					foreach (Int32 curAcc in Accuracies) {
 						timeID = GetTimeID(date, curAcc);
 						String htField = curAcc + "|" + timeID;
-						taskList.Add(db.HashIncrementAsync("Emote:_global|" + words[wordIdx], htField, occurances));
-						taskList.Add(db.HashIncrementAsync("Emote:" + channelName + "|" + words[wordIdx], htField, occurances));
+						taskList.Add(db.HashIncrementAsync("Emote:_global|" + words[wordIdx], htField, 1));
+						taskList.Add(db.HashIncrementAsync("Emote:" + channelName + "|" + words[wordIdx], htField, 1));
+						htField = words[wordIdx] + "|" + timeID;
+						taskList.Add(db.HashIncrementAsync("EmoteTime:_global|" + curAcc, htField, 1));
+						taskList.Add(db.HashIncrementAsync("EmoteTime:" + channelName + "|" + curAcc, htField, 1));
 					}
 				}
 			}
@@ -80,11 +82,11 @@ namespace ParseEngine {
 			Int32 timeID;
 			foreach (Int32 curAcc in Accuracies) {
 				timeID = GetTimeID(date, curAcc);
-				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
-				taskList.Add(db.HashDecrementAsync(htName, "Messages"));
-				taskList.Add(db.HashDecrementAsync(htName, "Total"));
+				String htName = "Line:" + channelName + "|" + curAcc;
+				taskList.Add(db.HashIncrementAsync(htName, timeID + "|Messages"));
+				taskList.Add(db.HashIncrementAsync(htName, timeID + "|Total"));
 				// Leave this off until we're sure we need it
-				////taskList.Add(db.SetAddAsync("Lines", htName));
+				taskList.Add(db.SetAddAsync("Lines", htName));
 			}
 		}
 
@@ -93,14 +95,15 @@ namespace ParseEngine {
 			Int32 timeID;
 			foreach (Int32 curAcc in Accuracies) {
 				timeID = GetTimeID(date, curAcc);
-				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
+				String htName = "Line:" + channelName + "|" + curAcc;
 				////db.HashIncrement(htName, "Actions");
 				////db.HashIncrement(htName, "Total");
 				////db.SetAdd("Lines", htName);
-				taskList.Add(db.HashDecrementAsync(htName, "Actions"));
-				taskList.Add(db.HashDecrementAsync(htName, "Total"));
+				taskList.Add(db.HashIncrementAsync(htName, timeID + "|Actions"));
+				taskList.Add(db.HashIncrementAsync(htName, timeID + "|Total"));
 				// Leave this off until we're sure we need it
-				////taskList.Add(db.SetAddAsync("Lines", htName));
+				taskList.Add(db.SetAddAsync("Lines", htName));
+				taskList.Add(db.SetAddAsync("Lines", htName));
 			}
 		}
 
@@ -109,14 +112,14 @@ namespace ParseEngine {
 			Int32 timeID;
 			foreach (Int32 curAcc in Accuracies) {
 				timeID = GetTimeID(date, curAcc);
-				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
+				String htName = "Line:" + channelName + "|" + curAcc;
 				////db.HashIncrement(htName, "Joins");
 				////db.HashIncrement(htName, "Total");
 				////db.SetAdd("Lines", htName);
-				taskList.Add(db.HashDecrementAsync(htName, "Joins"));
-				taskList.Add(db.HashDecrementAsync(htName, "Total"));
+				taskList.Add(db.HashIncrementAsync(htName, timeID + "|Joins"));
+				taskList.Add(db.HashIncrementAsync(htName, timeID + "|Total"));
 				// Leave this off until we're sure we need it
-				////taskList.Add(db.SetAddAsync("Lines", htName));
+				taskList.Add(db.SetAddAsync("Lines", htName));
 			}
 		}
 
@@ -125,14 +128,14 @@ namespace ParseEngine {
 			Int32 timeID;
 			foreach (Int32 curAcc in Accuracies) {
 				timeID = GetTimeID(date, curAcc);
-				String htName = "Line:" + channelName + "|" + curAcc + "|" + timeID;
+				String htName = "Line:" + channelName + "|" + curAcc;
 				////db.HashIncrement(htName, "Parts");
 				////db.HashIncrement(htName, "Total");
 				////db.SetAdd("Lines", htName);
-				taskList.Add(db.HashDecrementAsync(htName, "Parts"));
-				taskList.Add(db.HashDecrementAsync(htName, "Total"));
+				taskList.Add(db.HashIncrementAsync(htName, timeID + "|Parts"));
+				taskList.Add(db.HashIncrementAsync(htName, timeID + "|Total"));
 				// Leave this off until we're sure we need it
-				////taskList.Add(db.SetAddAsync("Lines", htName));
+				taskList.Add(db.SetAddAsync("Lines", htName));
 			}
 		}
 
